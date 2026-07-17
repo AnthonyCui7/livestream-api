@@ -1,0 +1,11 @@
+[project]
+name = "router"
+version = "0.1.0"
+description = "Control plane: accepts stream/VOD jobs, spawns clip-worker tasks, serves clip metadata"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.115",
+    "pydantic-settings>=2.6",
+    "supabase>=2.10",
+    "boto3>=1.35",
+]
