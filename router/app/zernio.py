@@ -82,7 +82,10 @@ def get_or_create_profile(supabase, *, user_id: str, email: str | None) -> str:
             "/profiles",
             json={"name": name, "description": "clipfarm user profile"},
         )
-        profile_id = str(created.get("_id") or created.get("id") or "")
+        # Create responds {"message": ..., "profile": {"_id": ...}} — the row
+        # is nested, unlike the flat rows GET /profiles returns.
+        row = created.get("profile") if isinstance(created.get("profile"), dict) else created
+        profile_id = str(row.get("_id") or row.get("id") or "")
     if not profile_id:
         raise ZernioError("Social posting service returned no profile id.")
     supabase.table("social_profiles").insert(
