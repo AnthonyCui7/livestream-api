@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Clapperboard, LogOut } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
-import { DEMO_MODE } from '../../lib/demo'
+import { DATA_DEMO } from '../../lib/config'
 
 export function Navbar() {
   const { user, signOut } = useAuth()
@@ -23,12 +23,12 @@ export function Navbar() {
   return (
     <header className="h-14 shrink-0 border-b border-white/[0.06] flex items-center justify-between px-5">
       <Link to="/" className="flex items-center gap-2 group">
-        <span className="grid place-items-center w-7 h-7 rounded-[6px] bg-gradient-to-br from-violet-500 to-fuchsia-500">
+        <span className="grid place-items-center w-7 h-7 rounded-[6px] bg-violet-600">
           <Clapperboard size={16} className="text-white" />
         </span>
         <span className="text-white text-[15px] font-semibold tracking-tight">Clipper</span>
         {/* HARDCODED: product name placeholder — no real name chosen yet. */}
-        {DEMO_MODE && (
+        {DATA_DEMO && (
           <span className="ml-1.5 text-[10px] font-medium uppercase tracking-wide text-amber-300/80 bg-amber-400/10 ring-1 ring-amber-400/20 rounded-full px-1.5 py-0.5">
             demo
           </span>

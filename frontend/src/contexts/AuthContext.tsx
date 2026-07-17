@@ -1,13 +1,9 @@
-// Auth state, mirroring the narrative frontend's Supabase-backed AuthContext
-// (simplified to email/password). In DEMO_MODE it never touches Supabase and
-// instead keeps a fake session in localStorage so the app is usable offline.
-//
-// To go live: set DEMO_MODE = false in `lib/demo.ts`. The real Supabase paths
-// below are already wired.
+// Auth state, backed entirely by Supabase (email/password). Users live in
+// Supabase auth.users; projects.user_id references them. Requires the browser
+// env vars (VITE_SUPABASE_URL + ANON_KEY) — see lib/supabase.ts.
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { getSupabase } from '../lib/supabase'
-import { DEMO_MODE, DEMO_USER } from '../lib/demo'
 
 /** Minimal user shape the UI needs — a subset of Supabase's User. */
 export interface AppUser {
@@ -19,68 +15,59 @@ interface AuthContextType {
   user: AppUser | null
   loading: boolean
   signInWithEmail: (email: string, password: string) => Promise<void>
-  signUpWithEmail: (email: string, password: string) => Promise<void>
+  /** Returns whether the project requires email confirmation before sign-in. */
+  signUpWithEmail: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>
   signOut: () => Promise<void>
-  /** DEMO: skip real auth and enter with the fake user. Remove with demo mode. */
-  signInDemo: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const DEMO_SESSION_KEY = 'demo.session' // DEMO
+function toAppUser(user: { id: string; email?: string } | null | undefined): AppUser | null {
+  return user ? { id: user.id, email: user.email ?? null } : null
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // ── DEMO branch: read the fake session, no network ────────────────────
-    if (DEMO_MODE) {
-      const active = localStorage.getItem(DEMO_SESSION_KEY) === '1'
-      setUser(active ? { id: DEMO_USER.id, email: DEMO_USER.email } : null)
+    let supabase
+    try {
+      supabase = getSupabase()
+    } catch (err) {
+      // Missing env — surface it, but don't white-screen: land on /login.
+      console.error(err)
       setLoading(false)
       return
     }
 
-    // ── Real Supabase auth ────────────────────────────────────────────────
-    const supabase = getSupabase()
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ? { id: session.user.id, email: session.user.email ?? null } : null)
+      setUser(toAppUser(session?.user))
       setLoading(false)
     })
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ? { id: session.user.id, email: session.user.email ?? null } : null)
+      setUser(toAppUser(session?.user))
       setLoading(false)
     })
     return () => subscription.unsubscribe()
   }, [])
 
-  const signInDemo = () => {
-    // DEMO: accept any (or no) credentials and enter as the fake user.
-    localStorage.setItem(DEMO_SESSION_KEY, '1')
-    setUser({ id: DEMO_USER.id, email: DEMO_USER.email })
-  }
-
   const signInWithEmail = async (email: string, password: string) => {
-    if (DEMO_MODE) return signInDemo() // DEMO
     const { error } = await getSupabase().auth.signInWithPassword({ email, password })
     if (error) throw error
   }
 
   const signUpWithEmail = async (email: string, password: string) => {
-    if (DEMO_MODE) return signInDemo() // DEMO
-    const { error } = await getSupabase().auth.signUp({ email, password })
+    const { data, error } = await getSupabase().auth.signUp({ email, password })
     if (error) throw error
+    // When email confirmation is enabled, signUp returns a user but no session.
+    return { needsConfirmation: !data.session }
   }
 
   const signOut = async () => {
     setUser(null)
-    if (DEMO_MODE) {
-      localStorage.removeItem(DEMO_SESSION_KEY) // DEMO
-      return
-    }
     try {
       await getSupabase().auth.signOut({ scope: 'local' })
     } catch (err) {
@@ -89,9 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider
-      value={{ user, loading, signInWithEmail, signUpWithEmail, signOut, signInDemo }}
-    >
+    <AuthContext.Provider value={{ user, loading, signInWithEmail, signUpWithEmail, signOut }}>
       {children}
     </AuthContext.Provider>
   )

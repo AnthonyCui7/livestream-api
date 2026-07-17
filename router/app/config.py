@@ -3,11 +3,11 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# The single global .env at the repo root, shared with the frontend.
-# extra="ignore" lets frontend-only VITE_* vars live in the same file, and
-# means a missing .env (e.g. in a container, where vars come from the
+# The router's own .env (router/.env). The frontend has a separate
+# frontend/.env with the VITE_ vars. extra="ignore" tolerates any stray/unknown
+# keys, and a missing .env (e.g. in a container, where vars come from the
 # environment directly) is simply skipped rather than an error.
-ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
 
 
 class Settings(BaseSettings):

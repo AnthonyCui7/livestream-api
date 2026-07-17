@@ -4,6 +4,5 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  // The single global .env lives at the repo root
-  envDir: '..',
+  // Env comes from this directory's own .env (frontend/.env) — Vite's default.
 })

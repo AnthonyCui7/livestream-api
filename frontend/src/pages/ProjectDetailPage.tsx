@@ -49,7 +49,7 @@ export default function ProjectDetailPage() {
     return copy
   }, [clips, sort])
 
-  const isWorking = project?.status === 'queued' || project?.status === 'processing'
+  const isWorking = project?.status === 'created' || project?.status === 'ingesting'
 
   if (loading) return <DetailSkeleton />
 
@@ -93,7 +93,7 @@ export default function ProjectDetailPage() {
         <div className="flex items-center gap-2.5 px-4 py-3 mb-5 bg-violet-500/[0.07] ring-1 ring-violet-400/20 rounded-[9px]">
           <Loader2 size={15} className="text-violet-300 animate-spin" />
           <span className="text-violet-200 text-[12.5px]">
-            {project.status === 'queued'
+            {project.status === 'created'
               ? 'Queued — spinning up the clip worker…'
               : 'Analyzing the source and finding the best moments…'}
           </span>
@@ -137,22 +137,23 @@ export default function ProjectDetailPage() {
 }
 
 function SourceSummary({ project }: { project: Project }) {
-  if (project.sourceType === 'stream') {
-    const Icon = project.streamPlatform === 'twitch' ? Twitch : Youtube
+  if (project.sourceType === 'upload') {
+    const files = project.sourceFiles ?? []
     return (
       <span className="inline-flex items-center gap-1.5 truncate">
-        <Icon size={14} className="shrink-0" />
-        <span className="truncate">{project.streamUrl}</span>
+        <Upload size={13} className="shrink-0" />
+        <span className="truncate">
+          {files.length === 1 ? files[0].name : `${files.length} uploaded videos`}
+        </span>
       </span>
     )
   }
-  const files = project.sourceFiles ?? []
+  // video / livestream link
+  const Icon = project.streamPlatform === 'twitch' ? Twitch : Youtube
   return (
     <span className="inline-flex items-center gap-1.5 truncate">
-      <Upload size={13} className="shrink-0" />
-      <span className="truncate">
-        {files.length === 1 ? files[0].name : `${files.length} uploaded videos`}
-      </span>
+      <Icon size={14} className="shrink-0" />
+      <span className="truncate">{project.sourceUrl}</span>
     </span>
   )
 }

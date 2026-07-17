@@ -16,13 +16,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Shimmer used by the Skeleton loader (animate-[shimmer_...]). */
-@keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
-}
-
 /* Slim dark scrollbar for scroll regions. */
 .custom-scrollbar::-webkit-scrollbar {
   width: 9px;

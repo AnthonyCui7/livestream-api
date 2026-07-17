@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { MoreHorizontal, Twitch, Upload, Youtube } from 'lucide-react'
 import type { Project } from '../../types'
 import { formatRelative } from '../../lib/format'
-import { gradientFor } from '../../lib/placeholder'
+import { colorFor } from '../../lib/placeholder'
 import { StatusPill } from './StatusPill'
 
 interface Props {
@@ -29,7 +29,7 @@ export function ProjectCard({ project, onDelete }: Props) {
       <Link to={`/projects/${project.id}`} className="block">
         <div
           className="aspect-video grid place-items-center"
-          style={project.thumbnailUrl ? undefined : { backgroundImage: gradientFor(project.id) }}
+          style={project.thumbnailUrl ? undefined : { backgroundColor: colorFor(project.id) }}
         >
           {project.thumbnailUrl ? (
             <img src={project.thumbnailUrl} alt="" className="w-full h-full object-cover" />
@@ -89,20 +89,19 @@ export function ProjectCard({ project, onDelete }: Props) {
 
 function SourceGlyph({ project }: { project: Project }) {
   const cls = 'text-white/85'
-  if (project.sourceType === 'stream') {
-    return project.streamPlatform === 'twitch' ? (
-      <Twitch size={30} className={cls} />
-    ) : (
-      <Youtube size={32} className={cls} />
-    )
-  }
-  return <Upload size={28} className={cls} />
+  if (project.sourceType === 'upload') return <Upload size={28} className={cls} />
+  // video / livestream → show the platform mark.
+  return project.streamPlatform === 'twitch' ? (
+    <Twitch size={30} className={cls} />
+  ) : (
+    <Youtube size={32} className={cls} />
+  )
 }
 
 function SourceLabel({ project }: { project: Project }) {
-  if (project.sourceType === 'stream') {
-    return <span className="capitalize">{project.streamPlatform ?? 'stream'}</span>
+  if (project.sourceType === 'upload') {
+    const n = project.sourceFiles?.length ?? 0
+    return <span>{n > 1 ? `${n} uploads` : 'Upload'}</span>
   }
-  const n = project.sourceFiles?.length ?? 0
-  return <span>{n > 1 ? `${n} uploads` : 'Upload'}</span>
+  return <span className="capitalize">{project.streamPlatform ?? 'Stream'}</span>
 }

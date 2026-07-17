@@ -1,22 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Plus, Sparkles } from 'lucide-react'
 import type { Project } from '../types'
-import {
-  listProjects,
-  createProject as apiCreate,
-  deleteProject as apiDelete,
-  type CreateProjectInput,
-} from '../services/projects'
+import { listProjects } from '../services/projects'
 import { ProjectCard } from '../components/projects/ProjectCard'
-import { CreateProjectModal } from '../components/projects/CreateProjectModal'
 import { Skeleton } from '../components/ui/Skeleton'
+import { showToast } from '../lib/toast'
+
+// DUD: project creation/deletion aren't wired up yet (RLS makes writes
+// service_role-only — needs the router API). The buttons stay, but just
+// nudge the user for now.
+const comingSoon = () => showToast('Coming soon — not wired up yet')
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
-  const navigate = useNavigate()
 
   const refresh = useCallback(async () => {
     try {
@@ -32,33 +29,6 @@ export default function ProjectsPage() {
     void refresh()
   }, [refresh])
 
-  const handleCreate = useCallback(
-    async (input: CreateProjectInput) => {
-      const project = await apiCreate(input)
-      setModalOpen(false)
-      // Jump straight into the new project to watch clips filter in.
-      navigate(`/projects/${project.id}`)
-    },
-    [navigate],
-  )
-
-  const handleDelete = useCallback(
-    async (id: string) => {
-      // Optimistic removal.
-      setProjects((prev) => prev.filter((p) => p.id !== id))
-      try {
-        await apiDelete(id)
-      } catch (err) {
-        console.error('[ProjectsPage] delete failed, refreshing', err)
-        void refresh()
-      }
-    },
-    [refresh],
-  )
-
-  const openModal = useCallback(() => setModalOpen(true), [])
-  const closeModal = useCallback(() => setModalOpen(false), [])
-
   const isEmpty = useMemo(() => !loading && projects.length === 0, [loading, projects])
 
   return (
@@ -72,8 +42,9 @@ export default function ProjectsPage() {
         </div>
         <button
           type="button"
-          onClick={openModal}
-          className="inline-flex items-center gap-1.5 h-9 px-3.5 bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white text-[13px] font-semibold rounded-[8px] hover:opacity-95 transition-opacity"
+          onClick={comingSoon}
+          title="Coming soon"
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 bg-violet-600 hover:bg-violet-500 text-white text-[13px] font-semibold rounded-[8px] transition-colors"
         >
           <Plus size={15} />
           New project
@@ -93,20 +64,14 @@ export default function ProjectsPage() {
           ))}
         </div>
       ) : isEmpty ? (
-        <EmptyState onCreate={openModal} />
+        <EmptyState onCreate={comingSoon} />
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
           {projects.map((p) => (
-            <ProjectCard key={p.id} project={p} onDelete={() => handleDelete(p.id)} />
+            <ProjectCard key={p.id} project={p} onDelete={comingSoon} />
           ))}
         </div>
       )}
-
-      <CreateProjectModal
-        open={modalOpen}
-        onCancel={closeModal}
-        onCreate={handleCreate}
-      />
     </div>
   )
 }
@@ -125,7 +90,8 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       <button
         type="button"
         onClick={onCreate}
-        className="inline-flex items-center gap-1.5 h-9 px-3.5 bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white text-[13px] font-semibold rounded-[8px] hover:opacity-95 transition-opacity"
+        title="Coming soon"
+        className="inline-flex items-center gap-1.5 h-9 px-3.5 bg-violet-600 hover:bg-violet-500 text-white text-[13px] font-semibold rounded-[8px] transition-colors"
       >
         <Plus size={15} />
         New project

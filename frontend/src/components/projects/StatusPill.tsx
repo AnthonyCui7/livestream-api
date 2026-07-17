@@ -4,8 +4,8 @@ const CONFIG: Record<
   ProjectStatus,
   { label: string; cls: string; pulse?: boolean }
 > = {
-  queued: { label: 'Queued', cls: 'text-sky-300 bg-sky-400/10 ring-sky-400/25', pulse: true },
-  processing: {
+  created: { label: 'Queued', cls: 'text-sky-300 bg-sky-400/10 ring-sky-400/25', pulse: true },
+  ingesting: {
     label: 'Finding clips',
     cls: 'text-violet-300 bg-violet-400/10 ring-violet-400/25',
     pulse: true,

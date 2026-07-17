@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Navbar } from './Navbar'
+import { Toaster } from '../ui/Toaster'
 
 /** App chrome: fixed top navbar over a scrollable content area. */
 export function Layout({ children }: { children: ReactNode }) {
@@ -9,6 +10,7 @@ export function Layout({ children }: { children: ReactNode }) {
       <main className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="mx-auto max-w-6xl px-5 py-8">{children}</div>
       </main>
+      <Toaster />
     </div>
   )
 }

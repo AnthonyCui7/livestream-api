@@ -17,7 +17,7 @@ frontend ──▶ router (container) ──run_instances──▶ clip worker (
 
 ## Getting started
 
-Everything is configured through the **single global `.env` at the repo root** — both apps read it. It's gitignored, so grab the current values from a teammate on a fresh clone.
+Config is split per app: **`router/.env`** (server-side values + secrets, loaded by `router/app/config.py`) and **`frontend/.env`** (the browser-safe `VITE_` vars only, loaded by Vite). Both are gitignored, so grab the current values from a teammate on a fresh clone. The Supabase service-role key belongs in `router/.env` and must never appear in `frontend/.env`.
 
 **Router** (http://localhost:8000, interactive docs at `/docs`):
 
@@ -39,7 +39,7 @@ Run the router tests with `cd router && uv run pytest` (AWS calls are mocked wit
 
 ## Router internals (`router/app/`)
 
-- `config.py` — typed settings (pydantic-settings) read from the root `.env`. All new env vars go here.
+- `config.py` — typed settings (pydantic-settings) read from `router/.env`. All new server-side env vars go here.
 - `logging_config.py` — stdout logging, configured at app startup.
 - `aws.py` — one place for the boto3 session/clients (region + credential chain).
 - `supabase_client.py` — cached server-side Supabase client (service-role key, bypasses RLS).
@@ -62,12 +62,12 @@ Three tiers, and the Supabase **service-role key** never crosses from one to a l
 
 ## Deploying the router
 
-The router is containerized (`router/Dockerfile`) so it runs on **ECS Fargate** or **App Runner** — but the ECS task definition / service (or IaC) is **not written yet**; only the image is. For low traffic either is fine; both just need the image plus the env vars from `.env` and an IAM role with the EC2/PassRole permissions above.
+The router is containerized (`router/Dockerfile`) so it runs on **ECS Fargate** or **App Runner** — but the ECS task definition / service (or IaC) is **not written yet**; only the image is. For low traffic either is fine; both just need the image plus the env vars from `router/.env` and an IAM role with the EC2/PassRole permissions above.
 
 ## Conventions
 
-- One `.env`, one `.gitignore`, both at the repo root. No per-app copies.
-- Vite only exposes `VITE_`-prefixed vars to the browser, and they get baked into the bundle — never prefix a secret with `VITE_`.
+- Two `.env` files, one per app: `router/.env` (server) and `frontend/.env` (browser `VITE_` vars). A single `.gitignore` at the repo root ignores both.
+- Vite only exposes `VITE_`-prefixed vars to the browser, and they get baked into the bundle — never prefix a secret with `VITE_`, and never put the service-role key in `frontend/.env`.
 - Router settings are typed in `router/app/config.py` (pydantic-settings). Add new env vars there.
 - New API endpoints: add a router module under `router/app/routes/` and include it in `routes/__init__.py`. Everything mounts under `/api`.
 - AWS credentials come from the standard chain (task role in prod, `aws configure` locally) — never in `.env`.
