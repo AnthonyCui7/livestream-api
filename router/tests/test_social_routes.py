@@ -52,7 +52,9 @@ def fake_zernio(monkeypatch):
         lambda _pid: [{"id": "acc-1", "platform": "tiktok", "name": "@demo"}],
     )
     monkeypatch.setattr(
-        zernio, "connect_url", lambda _pid, platform: f"https://zernio.test/c/{platform}"
+        zernio,
+        "connect_url",
+        lambda _pid, platform, _redirect: f"https://zernio.test/c/{platform}",
     )
 
     def _create_post(**kwargs):
@@ -75,6 +77,66 @@ def test_link_returns_auth_url(client, fake_zernio):
     resp = client.post("/api/social/accounts/link", json={"platform": "youtube"})
     assert resp.status_code == 200
     assert resp.json() == {"auth_url": "https://zernio.test/c/youtube"}
+
+
+@pytest.fixture
+def origins(monkeypatch):
+    """Pin the configured origins so redirect assertions don't depend on .env."""
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        social,
+        "get_settings",
+        lambda: SimpleNamespace(
+            frontend_origin_list=["https://app.example", "http://localhost:5173"],
+            frontend_origin_regex=r"https://.*\.preview\.example",
+        ),
+    )
+
+
+def test_link_redirect_uses_caller_origin(client, fake_zernio, origins, monkeypatch):
+    captured = {}
+
+    def _connect(_pid, _platform, redirect_url):
+        captured["redirect"] = redirect_url
+        return "https://tiktok.example/oauth"
+
+    monkeypatch.setattr(zernio, "connect_url", _connect)
+
+    resp = client.post(
+        "/api/social/accounts/link",
+        json={"platform": "tiktok"},
+        headers={"origin": "http://localhost:5173"},
+    )
+    assert resp.status_code == 200
+    assert captured["redirect"] == "http://localhost:5173/social/connected"
+
+    # Regex-matched origins (deploy previews) are honored too.
+    client.post(
+        "/api/social/accounts/link",
+        json={"platform": "tiktok"},
+        headers={"origin": "https://pr-42.preview.example"},
+    )
+    assert captured["redirect"] == "https://pr-42.preview.example/social/connected"
+
+
+def test_link_redirect_rejects_unknown_origin(client, fake_zernio, origins, monkeypatch):
+    captured = {}
+
+    def _connect(_pid, _platform, redirect_url):
+        captured["redirect"] = redirect_url
+        return "https://tiktok.example/oauth"
+
+    monkeypatch.setattr(zernio, "connect_url", _connect)
+
+    resp = client.post(
+        "/api/social/accounts/link",
+        json={"platform": "tiktok"},
+        headers={"origin": "https://evil.example"},
+    )
+    assert resp.status_code == 200
+    # Unrecognized origin -> first configured (production), never reflected.
+    assert captured["redirect"] == "https://app.example/social/connected"
 
 
 def test_unconfigured_is_503(client, monkeypatch):

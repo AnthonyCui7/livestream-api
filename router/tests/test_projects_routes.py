@@ -26,9 +26,12 @@ class _FakeTable:
         self._op = None
         self._payload = None
         self._filters = []
+        self._limit = None
 
     def insert(self, row):
-        self._op, self._payload = "insert", dict(row)
+        # postgrest accepts a single row or a list of rows.
+        self._op = "insert"
+        self._payload = [dict(r) for r in row] if isinstance(row, list) else [dict(row)]
         return self
 
     def select(self, *_columns):
@@ -51,19 +54,31 @@ class _FakeTable:
         self._filters.append(lambda r: r.get(column) in values)
         return self
 
+    def order(self, _column, desc=False):
+        return self  # insertion order is fine for these tests
+
+    def limit(self, count):
+        self._limit = count
+        return self
+
     def execute(self):
         if self._op == "insert":
-            row = {
-                "id": str(uuid.uuid4()),
-                "error": None,
-                "metadata": None,
-                "instance_id": None,
-                **self._payload,
-            }
-            self._rows[row["id"]] = row
-            return _FakeResponse([dict(row)])
+            out = []
+            for payload in self._payload:
+                row = {
+                    "id": str(uuid.uuid4()),
+                    "error": None,
+                    "metadata": None,
+                    "instance_id": None,
+                    **payload,
+                }
+                self._rows[row["id"]] = row
+                out.append(dict(row))
+            return _FakeResponse(out)
 
         matched = [r for r in self._rows.values() if all(f(r) for f in self._filters)]
+        if self._limit is not None:
+            matched = matched[: self._limit]
         if self._op == "select":
             return _FakeResponse([dict(r) for r in matched])
         if self._op == "update":
@@ -80,10 +95,14 @@ class _FakeTable:
 class FakeSupabase:
     def __init__(self):
         self.rows: dict[str, dict] = {}
+        self.clip_rows: dict[str, dict] = {}
 
     def table(self, name):
-        assert name == "projects"
-        return _FakeTable(self.rows)
+        if name == "projects":
+            return _FakeTable(self.rows)
+        if name == "clips":
+            return _FakeTable(self.clip_rows)
+        raise AssertionError(f"unexpected table {name!r}")
 
 
 def _seed(fake: FakeSupabase, **over) -> dict:
@@ -581,3 +600,84 @@ def test_rename_other_users_project_is_404(client, fake_supabase):
     resp = client.patch(f"/api/projects/{row['id']}", json={"name": "Mine now"})
     assert resp.status_code == 404
     assert fake_supabase.rows[row["id"]]["name"] != "Mine now"
+
+
+# ── POST /api/projects/demo (clone the showcase) ─────────────────────
+
+
+def _seed_demo(fake: FakeSupabase, **over) -> dict:
+    defaults = {
+        "user_id": None,
+        "is_demo": True,
+        "name": "YouTube demo",
+        "source_type": "video",
+        "source_url": "https://www.youtube.com/watch?v=demo123",
+        "status": "ready",
+        "metadata": {"source_archive": {"bucket": "b", "prefix": "p/"}},
+    }
+    demo = _seed(fake, **{**defaults, **over})
+    fake.clip_rows["demo-clip-1"] = {
+        "id": "demo-clip-1",
+        "project_id": demo["id"],
+        "title": "Big moment",
+        "description": None,
+        "start_seconds": 10,
+        "end_seconds": 40,
+        "score": 0.9,
+        "video_url": "https://cdn.example/clip.mp4",
+        "status": "rendered",
+        "metadata": {
+            "thumbnail_url": "https://cdn.example/t.jpg",
+            "render": {"bucket": "clips", "storage_path": "x/y.mp4"},
+        },
+    }
+    return demo
+
+
+def test_demo_clone_happy_path(client, fake_supabase):
+    demo = _seed_demo(fake_supabase)
+
+    resp = client.post(
+        "/api/projects/demo",
+        json={"name": "My video", "source_url": "https://www.youtube.com/watch?v=abc"},
+    )
+
+    assert resp.status_code == 201
+    row = resp.json()
+    assert row["user_id"] == USER_ID
+    assert row["name"] == "My video"
+    assert row["source_url"] == "https://www.youtube.com/watch?v=abc"
+    assert row["status"] == "ready"
+    assert row["metadata"]["demo_clone_of"] == demo["id"]
+    # The key the project-delete cleanup trigger fires on must not be copied.
+    assert "source_archive" not in row["metadata"]
+
+    clones = [
+        c for c in fake_supabase.clip_rows.values() if c["project_id"] == row["id"]
+    ]
+    assert len(clones) == 1
+    clone = clones[0]
+    assert clone["video_url"] == "https://cdn.example/clip.mp4"  # media is shared
+    assert clone["status"] == "rendered"
+    # render (the clip-delete cleanup pointer) stripped; the rest kept.
+    assert clone["metadata"] == {"thumbnail_url": "https://cdn.example/t.jpg"}
+    # The original demo clip is untouched.
+    assert fake_supabase.clip_rows["demo-clip-1"]["project_id"] == demo["id"]
+
+
+def test_demo_clone_defaults_and_rejected_url_fall_back(client, fake_supabase):
+    _seed_demo(fake_supabase, metadata=None)
+
+    resp = client.post(
+        "/api/projects/demo", json={"source_url": "https://evil.example/x"}
+    )
+
+    assert resp.status_code == 201
+    row = resp.json()
+    assert row["name"] == "YouTube demo"  # no name given -> demo's name
+    assert row["source_url"] == "https://www.youtube.com/watch?v=demo123"
+
+
+def test_demo_clone_without_seeded_demo_is_503(client, fake_supabase):
+    resp = client.post("/api/projects/demo", json={})
+    assert resp.status_code == 503

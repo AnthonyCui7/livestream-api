@@ -56,6 +56,17 @@ class ProjectUpdateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=120)
 
 
+class DemoProjectRequest(BaseModel):
+    """POST /api/projects/demo — clone the showcase project for the caller.
+
+    Both fields are cosmetic: name defaults to the demo project's name, and
+    source_url (the YouTube link the user pasted) is stored for display only —
+    no worker ever runs against it."""
+
+    name: str | None = Field(default=None, max_length=120)
+    source_url: str | None = None
+
+
 class SocialPlatform(str, Enum):
     """Platforms a clip can be posted to (mirrors the frontend + Zernio slugs)."""
 

@@ -36,6 +36,8 @@ export interface ProjectRow {
   updated_at: string
   /** Supabase `clips(count)` aggregate — present on direct reads only. */
   clips?: { count: number }[]
+  /** True on the shared seeded showcase project (readable by everyone). */
+  is_demo?: boolean
 }
 
 export interface ClipRow {
@@ -198,6 +200,27 @@ export async function cancelProject(id: string, force = false): Promise<Project>
  *  (DB triggers enqueue the media cleanup). */
 export async function deleteProject(id: string): Promise<void> {
   await apiFetch(`/api/projects/${id}`, { method: 'DELETE' })
+}
+
+/**
+ * POST /api/projects/demo — clone the seeded showcase project into a project
+ * the caller owns. Used for YouTube submissions (YouTube blocks datacenter
+ * IPs, so the real worker can't ingest it): the user gets their own copy of
+ * the demo, on which every normal write path (edits, rename, posting, delete)
+ * works.
+ */
+export async function createDemoProject(input: {
+  name?: string
+  sourceUrl?: string
+}): Promise<Project> {
+  const res = await apiFetch('/api/projects/demo', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...(input.name ? { name: input.name } : {}),
+      ...(input.sourceUrl ? { source_url: input.sourceUrl } : {}),
+    }),
+  })
+  return rowToProject((await res.json()) as ProjectRow)
 }
 
 /** PATCH /api/projects/:id — rename a project the caller owns. */

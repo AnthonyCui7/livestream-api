@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Radio, Twitch, Video, X, Youtube } from 'lucide-react'
 import type { Project, StreamPlatform } from '../../types'
-import { createProject } from '../../services/projects'
-import { DEMO_YOUTUBE_PROJECT_ID } from '../../lib/config'
+import { createDemoProject, createProject } from '../../services/projects'
 import { showToast } from '../../lib/toast'
 
 interface Props {
@@ -138,24 +137,29 @@ export function NewProjectModal({ open, onClose, onCreated }: Props) {
       setError(invalid)
       return
     }
-    // YouTube blocks datacenter egress IPs, so a real YouTube job would fail
-    // in the worker. Route every YouTube submission to the seeded showcase
-    // project instead — no worker, instant results.
-    if (platform === 'youtube') {
-      showToast('YouTube demo — opening the showcase project')
-      onClose()
-      navigate(`/projects/${DEMO_YOUTUBE_PROJECT_ID}`)
-      return
-    }
     setError('')
     setLoading(true)
     try {
-      const project = await createProject({
-        name: name.trim() || undefined,
-        sourceUrl: trimmedUrl,
-        sourceType,
-      })
-      showToast('Project created — spinning up the clip worker…')
+      // YouTube blocks datacenter egress IPs, so a real YouTube job would
+      // fail in the worker. Clone the seeded showcase project into one the
+      // caller OWNS instead — instant results, and every write path (editor
+      // saves, rename, posting) works because the clips aren't shared.
+      const project =
+        platform === 'youtube'
+          ? await createDemoProject({
+              name: name.trim() || undefined,
+              sourceUrl: trimmedUrl,
+            })
+          : await createProject({
+              name: name.trim() || undefined,
+              sourceUrl: trimmedUrl,
+              sourceType,
+            })
+      showToast(
+        platform === 'youtube'
+          ? 'YouTube demo — your copy of the showcase project is ready'
+          : 'Project created — spinning up the clip worker…',
+      )
       onCreated?.(project)
       navigate(`/projects/${project.id}`)
     } catch (err) {

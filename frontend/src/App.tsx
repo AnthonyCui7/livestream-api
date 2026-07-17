@@ -7,6 +7,7 @@ import SignUpPage from './pages/SignUpPage'
 import ProjectsPage from './pages/ProjectsPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
 import ClipEditorPage from './pages/ClipEditorPage'
+import SocialConnectedPage from './pages/SocialConnectedPage'
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
@@ -22,6 +23,8 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignUpPage />} />
+          {/* OAuth return target (Zernio redirect_url) — public, no Layout. */}
+          <Route path="/social/connected" element={<SocialConnectedPage />} />
           <Route
             path="/"
             element={

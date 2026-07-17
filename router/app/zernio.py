@@ -100,8 +100,17 @@ def _find_profile_id_by_name(name: str) -> str | None:
     return None
 
 
-def connect_url(profile_id: str, platform: str) -> str:
-    data = _call("GET", f"/connect/{platform}", params={"profileId": profile_id})
+def connect_url(profile_id: str, platform: str, redirect_url: str) -> str:
+    """Platform OAuth URL for linking one account to this profile.
+
+    redirect_url is where Zernio sends the user after the platform's consent
+    screen — without it the flow dead-ends on zernio.com (which asks the end
+    user to log into Zernio), so it is always required here."""
+    data = _call(
+        "GET",
+        f"/connect/{platform}",
+        params={"profileId": profile_id, "redirect_url": redirect_url},
+    )
     url = data.get("authUrl") or data.get("url")
     if not url:
         raise ZernioError("Social posting service returned no connect URL.")

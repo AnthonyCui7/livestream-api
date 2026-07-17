@@ -24,6 +24,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.auth import AuthUser, get_current_user
 from app.schemas import (
     TERMINAL_STATUSES,
+    DemoProjectRequest,
     ProjectCreateRequest,
     ProjectStatus,
     ProjectUpdateRequest,
@@ -214,6 +215,100 @@ def create_project(
         .data
     )
     return rows[0] if rows else {**inserted, "instance_id": instance_id}
+
+
+@router.post("/demo", status_code=201)
+def create_demo_project(
+    body: DemoProjectRequest, user: AuthUser = Depends(get_current_user)
+) -> dict:
+    """Clone the seeded showcase project into a project the caller owns.
+
+    YouTube blocks datacenter egress IPs, so YouTube submissions can't run the
+    real worker; the frontend calls this instead. The demo project and its
+    clips are copied into rows owned by the caller, so every normal write path
+    (editor saves, rename, posting, delete) works on the copy. Media is NOT
+    copied — cloned clips point at the demo's public storage URLs — and the
+    metadata keys the delete-cleanup triggers fire on (clips.metadata.render,
+    projects.metadata.source_archive) are stripped, so deleting a clone can
+    never delete the shared demo files.
+    """
+    supabase = get_supabase()
+    demo_rows = (
+        supabase.table("projects")
+        .select("*")
+        .eq("is_demo", True)
+        .order("created_at")
+        .limit(1)
+        .execute()
+        .data
+    )
+    if not demo_rows:
+        raise HTTPException(status_code=503, detail="No demo project is seeded.")
+    demo = demo_rows[0]
+
+    # The pasted URL is display-only, but hold it to the same bar as a real
+    # submission; anything off falls back to the demo's own URL.
+    source_url = (body.source_url or "").strip() or demo["source_url"]
+    try:
+        validate_source_url(source_url)
+    except ValueError:
+        source_url = demo["source_url"]
+
+    metadata = {
+        k: v for k, v in (demo.get("metadata") or {}).items() if k != "source_archive"
+    }
+    metadata["demo_clone_of"] = demo["id"]
+
+    project = (
+        supabase.table("projects")
+        .insert(
+            {
+                "user_id": user.id,
+                "name": (body.name or "").strip() or demo["name"],
+                "source_type": demo["source_type"],
+                "source_url": source_url,
+                "status": ProjectStatus.ready.value,
+                "metadata": metadata,
+            }
+        )
+        .execute()
+        .data[0]
+    )
+
+    demo_clips = (
+        supabase.table("clips")
+        .select("*")
+        .eq("project_id", demo["id"])
+        .order("created_at")
+        .execute()
+        .data
+    )
+    if demo_clips:
+        supabase.table("clips").insert(
+            [
+                {
+                    "project_id": project["id"],
+                    "title": clip["title"],
+                    "description": clip.get("description"),
+                    "start_seconds": clip["start_seconds"],
+                    "end_seconds": clip["end_seconds"],
+                    "score": clip.get("score"),
+                    "video_url": clip.get("video_url"),
+                    "status": clip["status"],
+                    "metadata": {
+                        k: v
+                        for k, v in (clip.get("metadata") or {}).items()
+                        if k != "render"
+                    },
+                }
+                for clip in demo_clips
+            ]
+        ).execute()
+
+    logger.info(
+        "demo project %s cloned to %s for user %s", demo["id"], project["id"], user.id
+    )
+    return project
 
 
 @router.post("/{project_id}/cancel")

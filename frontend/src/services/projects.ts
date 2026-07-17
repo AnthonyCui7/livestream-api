@@ -20,7 +20,13 @@ import {
 } from '../lib/api'
 import { getClipEdits, putClipEdits } from '../lib/clipEdits'
 
-export { createProject, cancelProject, deleteProject, renameProject } from '../lib/api'
+export {
+  createProject,
+  createDemoProject,
+  cancelProject,
+  deleteProject,
+  renameProject,
+} from '../lib/api'
 
 // DEMO: which platforms a clip was "posted" to — in-memory for the session
 // (resets on reload). Real social posting needs OAuth + a router endpoint.
@@ -45,10 +51,16 @@ export async function listProjects(): Promise<Project[]> {
     projectThumbnails(),
   ])
   if (error) throw new Error(error.message)
-  return ((data ?? []) as ProjectRow[]).map((row) => ({
-    ...rowToProject(row),
-    thumbnailUrl: thumbs.get(row.id),
-  }))
+  return ((data ?? []) as ProjectRow[])
+    // The shared seeded showcase is visible to every user (is_demo RLS) but
+    // owned by nobody, so writes to it 404. Users get their own clone of it
+    // on YouTube submissions (createDemoProject) — hide the shared original
+    // so all listed projects support edits/rename/posting.
+    .filter((row) => !row.is_demo)
+    .map((row) => ({
+      ...rowToProject(row),
+      thumbnailUrl: thumbs.get(row.id),
+    }))
 }
 
 /** First rendered clip thumbnail per project — the project card poster.

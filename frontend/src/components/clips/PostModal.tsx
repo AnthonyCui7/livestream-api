@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Check, ExternalLink, Flame, Link2, Loader2, RefreshCw, X } from 'lucide-react'
 import type { Clip, SocialAccount, SocialPlatform } from '../../types'
 import { linkSocialAccount, listSocialAccounts } from '../../lib/api'
+import { SOCIAL_CONNECT_CHANNEL } from '../../pages/SocialConnectedPage'
 import { viralityScore, viralityTone } from '../../lib/format'
 import { colorFor } from '../../lib/placeholder'
 import { platformMeta } from './platformIcons'
@@ -56,12 +57,23 @@ export function PostModal({ open, clip, platform, onClose, onPost }: Props) {
     return () => document.removeEventListener('keydown', onKey)
   }, [open, clip.title, onClose, refreshAccounts])
 
-  // After the user goes off to Zernio's OAuth tab, re-check when they return.
+  // After the user goes off to the OAuth tab, re-check when they return —
+  // and instantly when the /social/connected landing page broadcasts success.
   useEffect(() => {
     if (!open || !linkStarted) return
     const onFocus = () => void refreshAccounts()
     window.addEventListener('focus', onFocus)
-    return () => window.removeEventListener('focus', onFocus)
+    let channel: BroadcastChannel | undefined
+    try {
+      channel = new BroadcastChannel(SOCIAL_CONNECT_CHANNEL)
+      channel.onmessage = () => void refreshAccounts()
+    } catch {
+      // BroadcastChannel unavailable — focus refresh still covers it.
+    }
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      channel?.close()
+    }
   }, [open, linkStarted, refreshAccounts])
 
   if (!open) return null
