@@ -1,19 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Sparkles } from 'lucide-react'
 import type { Project } from '../types'
-import { listProjects } from '../services/projects'
+import { deleteProject, listProjects } from '../services/projects'
 import { ProjectCard } from '../components/projects/ProjectCard'
+import { NewProjectModal } from '../components/projects/NewProjectModal'
 import { Skeleton } from '../components/ui/Skeleton'
 import { showToast } from '../lib/toast'
-
-// DUD: project creation/deletion aren't wired up yet (RLS makes writes
-// service_role-only — needs the router API). The buttons stay, but just
-// nudge the user for now.
-const comingSoon = () => showToast('Coming soon — not wired up yet')
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
+  const [creating, setCreating] = useState(false)
 
   const refresh = useCallback(async () => {
     try {
@@ -25,9 +22,27 @@ export default function ProjectsPage() {
     }
   }, [])
 
+  // Load once, then keep status pills / clip counts fresh with a lightweight
+  // poll — refresh only touches state on success, so no skeleton flash.
   useEffect(() => {
     void refresh()
+    const interval = setInterval(() => void refresh(), 10000)
+    return () => clearInterval(interval)
   }, [refresh])
+
+  const handleDelete = useCallback(
+    async (project: Project) => {
+      if (!confirm(`Delete “${project.name}”? Its clips and media are removed for good.`)) return
+      try {
+        await deleteProject(project.id)
+        showToast('Project deleted')
+        void refresh()
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Failed to delete the project')
+      }
+    },
+    [refresh],
+  )
 
   const isEmpty = useMemo(() => !loading && projects.length === 0, [loading, projects])
 
@@ -42,8 +57,7 @@ export default function ProjectsPage() {
         </div>
         <button
           type="button"
-          onClick={comingSoon}
-          title="Coming soon"
+          onClick={() => setCreating(true)}
           className="inline-flex items-center gap-1.5 h-9 px-3.5 bg-violet-600 hover:bg-violet-500 text-white text-[13px] font-semibold rounded-[8px] transition-colors"
         >
           <Plus size={15} />
@@ -64,13 +78,21 @@ export default function ProjectsPage() {
           ))}
         </div>
       ) : isEmpty ? (
-        <EmptyState onCreate={comingSoon} />
+        <EmptyState onCreate={() => setCreating(true)} />
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
           {projects.map((p) => (
-            <ProjectCard key={p.id} project={p} onDelete={comingSoon} />
+            <ProjectCard key={p.id} project={p} onDelete={() => void handleDelete(p)} />
           ))}
         </div>
+      )}
+
+      {creating && (
+        <NewProjectModal
+          open
+          onClose={() => setCreating(false)}
+          onCreated={() => void refresh()}
+        />
       )}
     </div>
   )
@@ -90,7 +112,6 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       <button
         type="button"
         onClick={onCreate}
-        title="Coming soon"
         className="inline-flex items-center gap-1.5 h-9 px-3.5 bg-violet-600 hover:bg-violet-500 text-white text-[13px] font-semibold rounded-[8px] transition-colors"
       >
         <Plus size={15} />

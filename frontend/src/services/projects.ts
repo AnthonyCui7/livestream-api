@@ -1,44 +1,104 @@
 // Data-access layer for projects and clips.
 //
-// The single seam between the UI and the backend. Today (DATA_DEMO) reads come
-// from the hardcoded demo store (lib/demo.ts) and there are no writes —
-// creating/deleting projects are duds in the UI until the router exposes the
-// projects API. Signatures/return types already match the DB schema
-// (livestream-container/supabase/migrations/*.sql), so going live means:
-//   • reads  — Supabase queries; RLS auto-scopes them to auth.uid()
-//   • writes — POST/DELETE to the router (RLS: projects/clips are
-//              service_role-only)
+// The single seam between the UI and the backend:
+//   • reads  — direct Supabase queries with the anon key; RLS owner-scopes
+//              every select to auth.uid()
+//   • writes — the router HTTP API (lib/api.ts); RLS makes projects/clips
+//              service_role-only, so the router does the writing
+//   • live   — polling every 4s (no Supabase realtime)
+// Social posting is still simulated (see postClip below).
 
 import type { Clip, Project, SocialPlatform } from '../types'
-import { demoStore } from '../lib/demo' // DEMO
+import { getSupabase } from '../lib/supabase'
+import { rowToClip, rowToProject, type ClipRow, type ProjectRow } from '../lib/api'
 
-// export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+export { createProject, cancelProject, deleteProject } from '../lib/api'
 
-export function listProjects(): Promise<Project[]> {
-  // TODO(api): supabase.from('projects').select('*, clips(count)') — RLS-scoped
-  return demoStore.listProjects() // DEMO
+// DEMO: which platforms a clip was "posted" to — in-memory for the session
+// (resets on reload). Real social posting needs OAuth + a router endpoint.
+const postedByClip = new Map<string, Set<SocialPlatform>>()
+
+function toClip(row: ClipRow): Clip {
+  return rowToClip(row, [...(postedByClip.get(row.id) ?? [])])
 }
 
-export function getProject(id: string): Promise<Project | null> {
-  // TODO(api): supabase.from('projects').select('*').eq('id', id).maybeSingle()
-  return demoStore.getProject(id) // DEMO
+export async function listProjects(): Promise<Project[]> {
+  const { data, error } = await getSupabase()
+    .from('projects')
+    .select('*, clips(count)')
+    .order('created_at', { ascending: false })
+  if (error) throw new Error(error.message)
+  return ((data ?? []) as ProjectRow[]).map(rowToProject)
 }
 
-export function listClips(projectId: string): Promise<Clip[]> {
-  // TODO(api): supabase.from('clips').select('*').eq('project_id', projectId)
-  return demoStore.listClips(projectId) // DEMO
+export async function getProject(id: string): Promise<Project | null> {
+  const { data, error } = await getSupabase()
+    .from('projects')
+    .select('*, clips(count)')
+    .eq('id', id)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  return data ? rowToProject(data as ProjectRow) : null
 }
 
-export function postClip(clipId: string, platform: SocialPlatform): Promise<void> {
-  // TODO(api): POST ${API_URL}/api/clips/:id/post { platform }
-  return demoStore.postClip(clipId, platform) // DEMO
+export async function listClips(projectId: string): Promise<Clip[]> {
+  const { data, error } = await getSupabase()
+    .from('clips')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('created_at')
+  if (error) throw new Error(error.message)
+  return ((data ?? []) as ClipRow[]).map(toClip)
 }
+
+// ── live clip updates: 4s polling ──────────────────────────────────────────
+
+/** Refresh fns of active subscriptions, so postClip can update badges
+ *  without waiting for the next poll. */
+const activeSubs = new Set<() => void>()
 
 /**
- * Stream a project's clips as they're produced. Returns an unsubscribe fn.
- * With the real API this becomes polling or an SSE/websocket subscription.
+ * Stream a project's clips as they're produced. Polls every 4s and emits only
+ * when the payload actually changed. Returns an unsubscribe fn.
  */
 export function subscribeClips(projectId: string, cb: (clips: Clip[]) => void): () => void {
-  // TODO(api): poll GET /api/projects/:id/clips (or subscribe via SSE)
-  return demoStore.subscribeClips(projectId, cb) // DEMO
+  let lastJson = ''
+  let disposed = false
+
+  const tick = async () => {
+    try {
+      const clips = await listClips(projectId)
+      if (disposed) return
+      // Cheap change detection — skip the emit when nothing moved.
+      const json = JSON.stringify(clips)
+      if (json === lastJson) return
+      lastJson = json
+      cb(clips)
+    } catch (err) {
+      console.error('[subscribeClips] poll failed', err)
+    }
+  }
+  const refresh = () => void tick()
+
+  refresh()
+  const interval = setInterval(refresh, 4000)
+  activeSubs.add(refresh)
+  return () => {
+    disposed = true
+    clearInterval(interval)
+    activeSubs.delete(refresh)
+  }
+}
+
+/** DEMO: fake "post to social" — records the platform in memory and nudges
+ *  active subscriptions so the posted badge updates right away. */
+export function postClip(clipId: string, platform: SocialPlatform): Promise<void> {
+  let set = postedByClip.get(clipId)
+  if (!set) {
+    set = new Set()
+    postedByClip.set(clipId, set)
+  }
+  set.add(platform)
+  activeSubs.forEach((refresh) => refresh())
+  return new Promise((resolve) => setTimeout(resolve, 700)) // pretend the upload takes a beat
 }

@@ -3,9 +3,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { AuthShell } from '../components/auth/AuthShell'
+import { GoogleButton } from '../components/auth/GoogleButton'
 
 export default function LoginPage() {
-  const { signInWithEmail } = useAuth()
+  const { signInWithEmail, signInWithGoogle } = useAuth()
   const navigate = useNavigate()
 
   const [email, setEmail] = useState('')
@@ -28,14 +29,32 @@ export default function LoginPage() {
     }
   }
 
+  const googleSignIn = async () => {
+    setError('')
+    try {
+      await signInWithGoogle() // redirects away on success
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed')
+    }
+  }
+
   return (
     <AuthShell subtitle="Turn long video into viral clips">
+      {error && (
+        <div className="mb-3 px-3 py-2 bg-red-500/10 ring-1 ring-red-500/20 rounded-[7px]">
+          <p className="text-red-300 text-[12px]">{error}</p>
+        </div>
+      )}
+
+      <GoogleButton onClick={googleSignIn} />
+
+      <div className="flex items-center gap-3 my-4">
+        <span className="h-px flex-1 bg-white/[0.08]" />
+        <span className="text-neutral-600 text-[11px]">or</span>
+        <span className="h-px flex-1 bg-white/[0.08]" />
+      </div>
+
       <form onSubmit={submit} className="space-y-3">
-        {error && (
-          <div className="px-3 py-2 bg-red-500/10 ring-1 ring-red-500/20 rounded-[7px]">
-            <p className="text-red-300 text-[12px]">{error}</p>
-          </div>
-        )}
         <div>
           <label className="block text-neutral-400 text-[12px] mb-1.5">Email</label>
           <input

@@ -15,7 +15,9 @@ def _amazon_ami(region: str = "us-east-1") -> str:
 
 
 def _settings(ami: str) -> Settings:
+    # _env_file=None: don't let values from router/.env leak into the test.
     return Settings(
+        _env_file=None,
         aws_region="us-east-1",
         worker_ami_id=ami,
         worker_instance_type="t3.small",
@@ -30,9 +32,10 @@ def test_launch_worker_creates_tagged_instance():
     settings = _settings(_amazon_ami())
 
     instance_id = launch_worker(
-        job_id="job-123",
-        source_url="https://example.com/vod.mp4",
-        source_type="vod",
+        project_id="proj-123",
+        source_url="https://www.youtube.com/watch?v=abc",
+        source_type="video",
+        virality_threshold=0.5,
         settings=settings,
     )
 
@@ -47,20 +50,27 @@ def test_launch_worker_creates_tagged_instance():
     tags = {t["Key"]: t["Value"] for t in instance["Tags"]}
     assert tags["Project"] == "livestream-clipper"
     assert tags["Role"] == "clip-worker"
-    assert tags["JobId"] == "job-123"
+    assert tags["ProjectId"] == "proj-123"
 
 
 @mock_aws
 def test_launch_worker_requires_ami_and_image():
     with pytest.raises(ValueError, match="WORKER_AMI_ID"):
-        launch_worker(job_id="j", source_url="u", source_type="vod", settings=Settings())
+        launch_worker(
+            project_id="p",
+            source_url="u",
+            source_type="video",
+            virality_threshold=0,
+            settings=Settings(_env_file=None),
+        )
 
     with pytest.raises(ValueError, match="WORKER_IMAGE_URI"):
         launch_worker(
-            job_id="j",
+            project_id="p",
             source_url="u",
-            source_type="vod",
-            settings=Settings(worker_ami_id="ami-123"),
+            source_type="video",
+            virality_threshold=0,
+            settings=Settings(_env_file=None, worker_ami_id="ami-123"),
         )
 
 
@@ -68,7 +78,11 @@ def test_launch_worker_requires_ami_and_image():
 def test_state_and_terminate():
     settings = _settings(_amazon_ami())
     instance_id = launch_worker(
-        job_id="job-9", source_url="u", source_type="vod", settings=settings
+        project_id="proj-9",
+        source_url="u",
+        source_type="video",
+        virality_threshold=0,
+        settings=settings,
     )
 
     assert get_worker_state(instance_id) in {"pending", "running"}

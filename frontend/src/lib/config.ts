@@ -2,9 +2,8 @@
 //
 // Auth is ALWAYS real Supabase (no demo bypass) — see contexts/AuthContext.
 //
-// DATA_DEMO: projects/clips are still hardcoded sample data (see lib/demo.ts),
-// shown to every signed-in user for now. Under the DB's RLS, writes are
-// service_role-only (worker/router), so real project creation needs a router
-// endpoint. Flip DATA_DEMO to false and back services/projects.ts with real
-// Supabase reads + router writes once that exists.
-export const DATA_DEMO = true
+// DATA_DEMO: false — projects/clips come from the real backend now (Supabase
+// reads in services/projects.ts + router writes in lib/api.ts). The hardcoded
+// sample store (lib/demo.ts) is kept for reference only; flip this back to
+// true only if you also re-point services/projects.ts at it.
+export const DATA_DEMO = false

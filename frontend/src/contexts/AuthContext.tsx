@@ -17,6 +17,8 @@ interface AuthContextType {
   signInWithEmail: (email: string, password: string) => Promise<void>
   /** Returns whether the project requires email confirmation before sign-in. */
   signUpWithEmail: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>
+  /** Redirects to Google; the session lands back via onAuthStateChange. */
+  signInWithGoogle: () => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -66,6 +68,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { needsConfirmation: !data.session }
   }
 
+  const signInWithGoogle = async () => {
+    // Full-page redirect to Google → Supabase callback → back to our origin.
+    // detectSessionInUrl (on by default) parses the returned session, and
+    // onAuthStateChange above picks it up. Requires the Google provider to be
+    // enabled in the Supabase dashboard (see README / setup notes).
+    const { error } = await getSupabase().auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    })
+    if (error) throw error
+  }
+
   const signOut = async () => {
     setUser(null)
     try {
@@ -76,7 +90,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithEmail, signUpWithEmail, signOut }}>
+    <AuthContext.Provider
+      value={{ user, loading, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   )

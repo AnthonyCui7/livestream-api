@@ -12,6 +12,12 @@ const CONFIG: Record<
   },
   ready: { label: 'Ready', cls: 'text-emerald-300 bg-emerald-400/10 ring-emerald-400/25' },
   failed: { label: 'Failed', cls: 'text-red-300 bg-red-400/10 ring-red-400/25' },
+  stopping: {
+    label: 'Stopping…',
+    cls: 'text-amber-300 bg-amber-400/10 ring-amber-400/25',
+    pulse: true,
+  },
+  cancelled: { label: 'Cancelled', cls: 'text-neutral-300 bg-white/[0.06] ring-white/15' },
 }
 
 export function StatusPill({ status }: { status: ProjectStatus }) {

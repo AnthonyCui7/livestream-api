@@ -4,6 +4,7 @@ import type { Clip, SocialPlatform } from '../../types'
 import { viralityScore, viralityTone } from '../../lib/format'
 import { colorFor } from '../../lib/placeholder'
 import { platformMeta } from './platformIcons'
+import { ClipThumbnail } from './ClipThumbnail'
 
 interface Props {
   open: boolean
@@ -81,6 +82,7 @@ export function PostModal({ open, clip, platform, onClose, onPost }: Props) {
             className="relative w-24 shrink-0 aspect-[9/16] rounded-[8px] overflow-hidden ring-1 ring-white/[0.06]"
             style={{ backgroundColor: colorFor(clip.id) }}
           >
+            <ClipThumbnail clip={clip} />
             <div className={`absolute top-1.5 left-1.5 inline-flex items-center gap-0.5 h-5 px-1.5 rounded-full ring-1 ${tone.bg} ${tone.ring} ${tone.text}`}>
               <Flame size={10} />
               <span className="text-[10px] font-semibold tabular-nums leading-none">{score}</span>

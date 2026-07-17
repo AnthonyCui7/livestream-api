@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
-api_router = APIRouter(prefix="/api")
+from app.routes.projects import router as projects_router
 
-# Feature routers get included here as they're built, e.g.:
-#   from app.routes.jobs import router as jobs_router
-#   api_router.include_router(jobs_router)
+api_router = APIRouter(prefix="/api")
+api_router.include_router(projects_router)

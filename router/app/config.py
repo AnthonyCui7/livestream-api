@@ -19,6 +19,7 @@ class Settings(BaseSettings):
 
     # ── App ──────────────────────────────────────────────────────────
     log_level: str = "INFO"
+    # Comma-separated in the env; use frontend_origin_list to read.
     frontend_origin: str = "http://localhost:5173"
 
     # ── Supabase (clip storage + metadata) ───────────────────────────
@@ -52,6 +53,12 @@ class Settings(BaseSettings):
     worker_image_uri: str = ""
     worker_ebs_volume_size_gb: int = 100
     worker_tag_project: str = "livestream-clipper"
+    # S3 bucket the worker writes raw/intermediate media to.
+    worker_s3_bucket: str = "livestream-media-519659320853"
+
+    @property
+    def frontend_origin_list(self) -> list[str]:
+        return [s.strip() for s in self.frontend_origin.split(",") if s.strip()]
 
     @property
     def worker_security_group_id_list(self) -> list[str]:

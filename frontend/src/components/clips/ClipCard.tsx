@@ -5,28 +5,34 @@ import { formatDuration, viralityScore, viralityTone } from '../../lib/format'
 import { colorFor } from '../../lib/placeholder'
 import { postClip } from '../../services/projects'
 import { PLATFORMS } from './platformIcons'
+import { ClipPlayerModal } from './ClipPlayerModal'
+import { ClipThumbnail } from './ClipThumbnail'
 import { PostModal } from './PostModal'
 
 /**
  * One generated clip: a portrait "short" with its virality score and a row of
  * one-click social post buttons (TikTok / YouTube / Instagram), in the spirit
- * of narrative's clip cards. In demo there's no real media, so the poster is a
- * solid color and posting is simulated.
+ * of narrative's clip cards. Rendered clips play in a modal; posting is still
+ * simulated. The tile shows the clip's thumbnail (metadata.thumbnail_url),
+ * falling back to the video's first frame, then a solid color (ClipThumbnail).
  */
 export function ClipCard({ clip }: { clip: Clip }) {
   const duration = formatDuration(clip.endSeconds - clip.startSeconds)
   const score = viralityScore(clip.score)
   const tone = viralityTone(score)
   const [postingTo, setPostingTo] = useState<SocialPlatform | null>(null)
+  const [playing, setPlaying] = useState(false)
   const posted = new Set(clip.postedPlatforms ?? [])
+  const playable = clip.status === 'rendered' && !!clip.videoUrl
 
   return (
     <div className="group relative flex flex-col">
       <div
         className="relative aspect-[9/16] rounded-[8px] overflow-hidden ring-1 ring-white/[0.06]"
-        style={clip.posterUrl ? undefined : { backgroundColor: colorFor(clip.id) }}
+        // Always painted — the under-layer if a thumbnail 404s or loads slowly.
+        style={{ backgroundColor: colorFor(clip.id) }}
       >
-        {clip.posterUrl && <img src={clip.posterUrl} alt="" className="w-full h-full object-cover" />}
+        <ClipThumbnail clip={clip} />
 
         {/* Virality score — the headline metric. */}
         <div
@@ -41,16 +47,33 @@ export function ClipCard({ clip }: { clip: Clip }) {
           <span className="text-[10.5px] font-medium tabular-nums text-neutral-200 leading-none">{duration}</span>
         </div>
 
-        {/* Play affordance (inert in demo — no media). */}
-        <button
-          type="button"
-          className="absolute inset-0 grid place-items-center opacity-0 group-hover:opacity-100 bg-black/25 transition-opacity"
-          aria-label="Play clip"
-        >
-          <span className="grid place-items-center w-11 h-11 rounded-full bg-white/90 text-black shadow-lg">
-            <Play size={18} className="ml-0.5 fill-current" />
-          </span>
-        </button>
+        {/* Play affordance — only clips with rendered media are playable;
+            the rest get a non-interactive status hint instead of a button. */}
+        {playable ? (
+          <button
+            type="button"
+            onClick={() => setPlaying(true)}
+            className="absolute inset-0 grid place-items-center opacity-0 group-hover:opacity-100 bg-black/25 transition-opacity"
+            aria-label="Play clip"
+          >
+            <span className="grid place-items-center w-11 h-11 rounded-full bg-white/90 text-black shadow-lg">
+              <Play size={18} className="ml-0.5 fill-current" />
+            </span>
+          </button>
+        ) : (
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 grid place-items-center opacity-0 group-hover:opacity-100 bg-black/25 transition-opacity pointer-events-none"
+          >
+            <span className="h-6 px-2.5 grid place-items-center rounded-full bg-black/55 backdrop-blur-sm text-[10.5px] font-medium text-neutral-300 leading-none">
+              {clip.status === 'failed'
+                ? 'Render failed'
+                : clip.status === 'detected'
+                  ? 'Not rendered'
+                  : 'Rendering…'}
+            </span>
+          </div>
+        )}
 
         {/* Virality bar. */}
         <div className="absolute bottom-0 inset-x-0 h-1 bg-black/30">
@@ -88,6 +111,8 @@ export function ClipCard({ clip }: { clip: Clip }) {
           })}
         </div>
       </div>
+
+      {playing && <ClipPlayerModal clip={clip} onClose={() => setPlaying(false)} />}
 
       {postingTo && (
         <PostModal

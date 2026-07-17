@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Loader2, Twitch, Upload, Youtube } from 'lucide-react'
+import { ArrowLeft, Loader2, Square, Twitch, Upload, Youtube } from 'lucide-react'
 import type { Clip, Project } from '../types'
-import { getProject, subscribeClips } from '../services/projects'
+import { cancelProject, getProject, subscribeClips } from '../services/projects'
 import { StatusPill } from '../components/projects/StatusPill'
 import { ClipCard } from '../components/clips/ClipCard'
 import { Skeleton } from '../components/ui/Skeleton'
+import { showToast } from '../lib/toast'
 
 type Sort = 'virality' | 'recent'
 
@@ -14,33 +15,78 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState<Project | null>(null)
   const [clips, setClips] = useState<Clip[]>([])
   const [loading, setLoading] = useState(true)
+  // Project is confirmed gone (unknown/invalid id, or deleted elsewhere) —
+  // shows the not-found state and stops both polls.
+  const [notFound, setNotFound] = useState(false)
   const [sort, setSort] = useState<Sort>('virality')
+  const [stopBusy, setStopBusy] = useState(false)
 
   // Load the project record.
   useEffect(() => {
     let alive = true
     setLoading(true)
-    getProject(id).then((p) => {
-      if (!alive) return
-      setProject(p)
-      setLoading(false)
-    })
+    setNotFound(false)
+    getProject(id)
+      .then((p) => {
+        if (!alive) return
+        setProject(p)
+        if (!p) setNotFound(true)
+        setLoading(false)
+      })
+      .catch((err) => {
+        // Invalid uuid in the URL (PostgREST 22P02), network failure, … —
+        // land on the not-found state instead of the skeleton forever.
+        console.error('[ProjectDetailPage] failed to load project', err)
+        if (!alive) return
+        setProject(null)
+        setNotFound(true)
+        setLoading(false)
+      })
     return () => {
       alive = false
     }
   }, [id])
 
-  // Subscribe to clips as the pipeline produces them. This also fires on
-  // status changes, so we refresh the project header alongside.
+  // Subscribe to clips as the pipeline produces them (4s polling). Each emit
+  // also refreshes the project header, keeping status/count fresh.
   useEffect(() => {
-    if (!id) return
+    if (!id || notFound) return
     const unsub = subscribeClips(id, (next) => {
       setClips(next)
       // Keep the header's status/count fresh without an extra request.
-      getProject(id).then((p) => p && setProject(p))
+      getProject(id)
+        .then((p) => {
+          if (p) setProject(p)
+          else setNotFound(true) // deleted elsewhere — stop polling
+        })
+        .catch((err) => {
+          // Transient failure — keep the last-known project state.
+          console.error('[ProjectDetailPage] header refresh failed', err)
+        })
     })
     return unsub
-  }, [id])
+  }, [id, notFound])
+
+  // The clip subscription only emits when clips change, so status flips that
+  // produce no clips (ingesting→ready, stopping→cancelled) need their own
+  // cheap poll while the project is still moving.
+  const status = project?.status
+  useEffect(() => {
+    if (!id || notFound) return
+    if (status !== 'created' && status !== 'ingesting' && status !== 'stopping') return
+    const interval = setInterval(() => {
+      getProject(id)
+        .then((p) => {
+          if (p) setProject(p)
+          else setNotFound(true) // deleted elsewhere — stop polling
+        })
+        .catch((err) => {
+          // Transient failure — keep the last-known project state.
+          console.error('[ProjectDetailPage] status poll failed', err)
+        })
+    }, 4000)
+    return () => clearInterval(interval)
+  }, [id, status, notFound])
 
   const sortedClips = useMemo(() => {
     const copy = [...clips]
@@ -50,10 +96,32 @@ export default function ProjectDetailPage() {
   }, [clips, sort])
 
   const isWorking = project?.status === 'created' || project?.status === 'ingesting'
+  const isStopping = project?.status === 'stopping'
+
+  const handleStop = async () => {
+    if (!project || stopBusy) return
+    // Already 'stopping' means the graceful path was taken — escalate to a
+    // force stop (terminate the EC2 instance) in case the worker is dead.
+    const force = project.status === 'stopping'
+    const message = force
+      ? 'Force stop this project? The worker is terminated immediately and the project is marked cancelled.'
+      : 'Stop this project? The worker shuts down and no more clips will be found.'
+    if (!confirm(message)) return
+    setStopBusy(true)
+    try {
+      const updated = await cancelProject(project.id, force)
+      setProject(updated)
+      showToast(updated.status === 'stopping' ? 'Stopping the worker…' : 'Project stopped')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to stop the project')
+    } finally {
+      setStopBusy(false)
+    }
+  }
 
   if (loading) return <DetailSkeleton />
 
-  if (!project) {
+  if (notFound || !project) {
     return (
       <div className="text-center py-24">
         <p className="text-neutral-400 text-[14px]">Project not found.</p>
@@ -86,16 +154,34 @@ export default function ProjectDetailPage() {
             <SourceSummary project={project} />
           </div>
         </div>
+
+        {(isWorking || isStopping) && (
+          <button
+            type="button"
+            onClick={() => void handleStop()}
+            disabled={stopBusy}
+            className={`shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 text-[13px] font-medium rounded-[8px] transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              isStopping
+                ? 'bg-red-500/10 hover:bg-red-500/20 ring-1 ring-red-500/25 text-red-300'
+                : 'bg-white/[0.04] hover:bg-white/[0.08] ring-1 ring-white/[0.08] text-red-300/90'
+            }`}
+          >
+            <Square size={12} className="fill-current" />
+            {stopBusy ? 'Stopping…' : isStopping ? 'Force stop' : 'Stop'}
+          </button>
+        )}
       </div>
 
-      {/* Live progress banner while clips are being found. */}
-      {isWorking && (
+      {/* Live progress banner while clips are being found (or the worker winds down). */}
+      {(isWorking || isStopping) && (
         <div className="flex items-center gap-2.5 px-4 py-3 mb-5 bg-violet-500/[0.07] ring-1 ring-violet-400/20 rounded-[9px]">
           <Loader2 size={15} className="text-violet-300 animate-spin" />
           <span className="text-violet-200 text-[12.5px]">
             {project.status === 'created'
               ? 'Queued — spinning up the clip worker…'
-              : 'Analyzing the source and finding the best moments…'}
+              : project.status === 'stopping'
+                ? 'Stopping — the worker is wrapping up…'
+                : 'Analyzing the source and finding the best moments…'}
           </span>
           <span className="ml-auto text-neutral-400 text-[12px] tabular-nums">
             {clips.length} {clips.length === 1 ? 'clip' : 'clips'} so far
@@ -123,7 +209,11 @@ export default function ProjectDetailPage() {
 
       {clips.length === 0 ? (
         <div className="text-center py-16 text-neutral-500 text-[12.5px]">
-          {isWorking ? 'The first clips will appear here any second…' : 'No clips were found.'}
+          {isWorking || isStopping
+            ? 'The first clips will appear here any second…'
+            : project.status === 'cancelled'
+              ? 'Project was cancelled before any clips were found.'
+              : 'No clips were found.'}
         </div>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3.5">

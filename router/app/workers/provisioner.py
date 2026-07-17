@@ -1,7 +1,7 @@
-"""Spin up (and tear down) the per-job EC2 workers that run the clip container.
+"""Spin up (and tear down) the per-project EC2 workers that run the clip container.
 
 This is the router's core job: translate a clip request into a running worker.
-Each job gets its own instance, launched with a bootstrap that runs the
+Each project gets its own instance, launched with a bootstrap that runs the
 container and then terminates the instance when the job finishes.
 
 The public surface is deliberately small so an ECS/Fargate implementation
@@ -19,12 +19,13 @@ logger = logging.getLogger(__name__)
 
 def launch_worker(
     *,
-    job_id: str,
+    project_id: str,
     source_url: str,
     source_type: str,
+    virality_threshold: float,
     settings: Settings | None = None,
 ) -> str:
-    """Launch an EC2 worker for a job. Returns the new instance id.
+    """Launch an EC2 worker for a project. Returns the new instance id.
 
     Raises ValueError if the worker AMI or container image isn't configured.
     """
@@ -36,7 +37,11 @@ def launch_worker(
         raise ValueError("WORKER_IMAGE_URI is not set — the worker has no container to run.")
 
     user_data = build_worker_user_data(
-        settings, job_id=job_id, source_url=source_url, source_type=source_type
+        settings,
+        project_id=project_id,
+        source_url=source_url,
+        source_type=source_type,
+        virality_threshold=virality_threshold,
     )
 
     kwargs: dict = {
@@ -63,7 +68,7 @@ def launch_worker(
                 "Tags": [
                     {"Key": "Project", "Value": settings.worker_tag_project},
                     {"Key": "Role", "Value": "clip-worker"},
-                    {"Key": "JobId", "Value": job_id},
+                    {"Key": "ProjectId", "Value": project_id},
                 ],
             }
         ],
@@ -84,7 +89,7 @@ def launch_worker(
 
     resp = get_ec2_client().run_instances(**kwargs)
     instance_id = resp["Instances"][0]["InstanceId"]
-    logger.info("launched clip-worker %s for job %s", instance_id, job_id)
+    logger.info("launched clip-worker %s for project %s", instance_id, project_id)
     return instance_id
 
 
