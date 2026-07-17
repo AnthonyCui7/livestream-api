@@ -204,7 +204,7 @@ export function TrimTimeline({
 
             {/* kept-range outline */}
             <div
-              className="absolute inset-y-0 ring-2 ring-inset ring-violet-500/80 pointer-events-none rounded-[2px]"
+              className="absolute inset-y-0 ring-2 ring-inset ring-[#22E55F]/80 pointer-events-none rounded-[2px]"
               style={{ left: `${pct(trim.start)}%`, width: `${pct(trim.end - trim.start)}%` }}
             />
           </div>
@@ -229,7 +229,7 @@ export function TrimTimeline({
                   onPointerDown={onCaptionDown(cap, 'move')}
                   className={`absolute top-0 bottom-0 rounded-[4px] flex items-center px-1 overflow-hidden cursor-grab active:cursor-grabbing ${
                     selected
-                      ? 'bg-violet-500/30 ring-1 ring-violet-400/70'
+                      ? 'bg-[#22E55F]/20 ring-1 ring-[#22E55F]/70'
                       : 'bg-white/[0.08] ring-1 ring-white/10 hover:bg-white/[0.12]'
                   }`}
                   style={{ left: `${pct(cap.startSeconds)}%`, width: `${pct(cap.endSeconds - cap.startSeconds)}%` }}
@@ -258,8 +258,8 @@ export function TrimTimeline({
           className="absolute pointer-events-none"
           style={{ left: `${pct(currentTime)}%`, top: 20, bottom: 0, transform: 'translateX(-50%)' }}
         >
-          <div className="w-px h-full bg-white/90 shadow-[0_0_3px_rgba(0,0,0,0.8)]" />
-          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-white shadow-sm" />
+          <div className="w-px h-full bg-[#22E55F] shadow-[0_0_3px_rgba(0,0,0,0.8)]" />
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-[#22E55F] shadow-sm" />
         </div>
       </div>
 
@@ -288,7 +288,7 @@ function TrimHandle({
       style={{ left: `${left}%`, transform: 'translateX(-50%)', touchAction: 'none' }}
       aria-label={side === 'start' ? 'Trim start' : 'Trim end'}
     >
-      <div className="w-1.5 h-9 rounded-full bg-violet-400 group-hover:bg-violet-300 shadow ring-1 ring-black/30" />
+      <div className="w-1.5 h-9 rounded-full bg-[#22E55F] group-hover:bg-[#35f16d] shadow ring-1 ring-black/30" />
     </div>
   )
 }

@@ -46,15 +46,15 @@ export function ClipPlayerModal({ clip, onClose }: { clip: Clip; onClose: () => 
       onClick={onClose}
     >
       <div
-        className="bg-[#111113] ring-1 ring-white/[0.08] rounded-[12px] w-full max-w-sm overflow-hidden"
+        className="bg-[#171717] ring-1 ring-white/[0.08] rounded-[12px] w-full max-w-sm overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/[0.06]">
-          <h2 className="text-white text-[15px] font-semibold truncate">{clip.title}</h2>
+          <h2 className="text-[#F5F5F3] text-[15px] font-semibold truncate">{clip.title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="shrink-0 w-7 h-7 grid place-items-center rounded-[6px] text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors"
+            className="shrink-0 w-7 h-7 grid place-items-center rounded-[6px] text-neutral-400 hover:text-[#F5F5F3] hover:bg-white/[0.06] transition-colors"
           >
             <X size={16} />
           </button>

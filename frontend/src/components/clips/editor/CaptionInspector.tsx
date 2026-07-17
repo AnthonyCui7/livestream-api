@@ -63,7 +63,7 @@ export function CaptionInspector({
         <button
           type="button"
           onClick={onAdd}
-          className="inline-flex items-center gap-1 h-7 pl-1.5 pr-2.5 text-[12px] font-medium text-white bg-violet-600 hover:bg-violet-500 rounded-[6px] transition-colors"
+          className="inline-flex items-center gap-1 h-7 pl-1.5 pr-2.5 text-[12px] font-medium text-[#0A0A0A] bg-[#22E55F] hover:bg-[#35f16d] rounded-[6px] transition-colors"
         >
           <Plus size={14} /> Add
         </button>
@@ -85,7 +85,7 @@ export function CaptionInspector({
                 type="button"
                 onClick={() => onSelect(cap.id)}
                 className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-[7px] text-left transition-colors ${
-                  active ? 'bg-white/[0.08] ring-1 ring-white/10' : 'hover:bg-white/[0.04]'
+                  active ? 'bg-[#22E55F]/10 ring-1 ring-[#22E55F]/30' : 'hover:bg-white/[0.04]'
                 }`}
               >
                 <span className="flex-1 min-w-0">
@@ -124,7 +124,7 @@ export function CaptionInspector({
                 onFocus={onGestureStart}
                 onChange={(e) => onUpdate(selected.id, { text: e.target.value })}
                 rows={2}
-                className="w-full px-3 py-2 bg-white/[0.04] text-white text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-violet-500/40 placeholder-neutral-600 resize-none transition-colors"
+                className="w-full px-3 py-2 bg-white/[0.04] text-[#F5F5F3] text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-[#22E55F]/40 placeholder-neutral-600 resize-none transition-colors"
                 placeholder="Caption text…"
               />
             </div>
@@ -175,7 +175,7 @@ export function CaptionInspector({
                     }
                     className={`h-7 rounded-[5px] text-[11.5px] font-medium transition-colors ${
                       selected.style.preset === p
-                        ? 'bg-white/[0.10] text-white'
+                        ? 'bg-[#22E55F]/15 text-[#22E55F]'
                         : 'text-neutral-400 hover:text-neutral-200'
                     }`}
                   >
@@ -196,7 +196,7 @@ export function CaptionInspector({
                 value={selected.style.fontSize}
                 onPointerDown={onGestureStart}
                 onChange={(e) => onUpdateStyle(selected.id, { fontSize: Number(e.target.value) })}
-                className="w-full accent-violet-500"
+                className="w-full accent-[#22E55F]"
               />
             </div>
 
@@ -220,7 +220,7 @@ export function CaptionInspector({
                       onClick={() => setStyle({ align: value })}
                       className={`h-7 grid place-items-center rounded-[5px] transition-colors ${
                         selected.style.align === value
-                          ? 'bg-white/[0.10] text-white'
+                          ? 'bg-[#22E55F]/15 text-[#22E55F]'
                           : 'text-neutral-400 hover:text-neutral-200'
                       }`}
                     >
@@ -266,7 +266,7 @@ export function CaptionInspector({
                           background: { ...selected.style.background!, opacity: Number(e.target.value) },
                         })
                       }
-                      className="w-full accent-violet-500"
+                      className="w-full accent-[#22E55F]"
                     />
                   </div>
                 </div>
@@ -306,7 +306,7 @@ export function CaptionInspector({
                           stroke: { ...selected.style.stroke!, width: Number(e.target.value) },
                         })
                       }
-                      className="w-full accent-violet-500"
+                      className="w-full accent-[#22E55F]"
                     />
                   </div>
                 </div>
@@ -328,10 +328,10 @@ export function CaptionInspector({
                         onClick={() => setField({ x, y })}
                         aria-label={`Position ${x} ${y}`}
                         className={`w-7 h-7 rounded-[5px] grid place-items-center transition-colors ${
-                          active ? 'bg-violet-500/30 ring-1 ring-violet-400/60' : 'bg-white/[0.04] hover:bg-white/[0.08]'
+                          active ? 'bg-[#22E55F]/20 ring-1 ring-[#22E55F]/60' : 'bg-white/[0.04] hover:bg-white/[0.08]'
                         }`}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-violet-200' : 'bg-neutral-500'}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-[#22E55F]' : 'bg-neutral-500'}`} />
                       </button>
                     )
                   })
@@ -416,7 +416,7 @@ function ToggleRow({
       >
         <span className="text-[11px] font-medium text-neutral-400">{label}</span>
         <span
-          className={`relative w-8 h-[18px] rounded-full transition-colors ${on ? 'bg-violet-600' : 'bg-white/[0.12]'}`}
+          className={`relative w-8 h-[18px] rounded-full transition-colors ${on ? 'bg-[#22E55F]' : 'bg-white/[0.12]'}`}
         >
           <span
             className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-transform ${

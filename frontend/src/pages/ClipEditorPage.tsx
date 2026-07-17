@@ -51,20 +51,20 @@ export default function ClipEditorPage() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-[#0a0a0b] grid place-items-center">
-        <Loader2 size={22} className="text-violet-300 animate-spin" />
+      <div className="fixed inset-0 bg-[#0A0A0A] grid place-items-center">
+        <Loader2 size={22} className="text-[#22E55F] animate-spin" />
       </div>
     )
   }
 
   if (error || !clip) {
     return (
-      <div className="fixed inset-0 bg-[#0a0a0b] grid place-items-center text-center px-6">
+      <div className="fixed inset-0 bg-[#0A0A0A] grid place-items-center text-center px-6">
         <div>
           <p className="text-neutral-400 text-[14px]">This clip could not be loaded.</p>
           <Link
             to={`/projects/${id}`}
-            className="text-violet-300 text-[13px] hover:underline mt-2 inline-block"
+            className="text-[#22E55F] text-[13px] hover:underline mt-2 inline-block"
           >
             Back to project
           </Link>
@@ -75,14 +75,14 @@ export default function ClipEditorPage() {
 
   if (!clip.videoUrl) {
     return (
-      <div className="fixed inset-0 bg-[#0a0a0b] grid place-items-center text-center px-6">
+      <div className="fixed inset-0 bg-[#0A0A0A] grid place-items-center text-center px-6">
         <div>
           <p className="text-neutral-400 text-[14px]">
             This clip has no rendered video yet, so there's nothing to edit.
           </p>
           <Link
             to={`/projects/${id}`}
-            className="text-violet-300 text-[13px] hover:underline mt-2 inline-block"
+            className="text-[#22E55F] text-[13px] hover:underline mt-2 inline-block"
           >
             Back to project
           </Link>

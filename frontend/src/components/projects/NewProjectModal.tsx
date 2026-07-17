@@ -173,16 +173,16 @@ export function NewProjectModal({ open, onClose, onCreated }: Props) {
       }}
     >
       <div
-        className="bg-[#111113] ring-1 ring-white/[0.08] rounded-[12px] w-full max-w-md overflow-hidden"
+        className="bg-[#171717] ring-1 ring-white/[0.08] rounded-[12px] w-full max-w-md overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
-          <h2 className="text-white text-[15px] font-semibold">New project</h2>
+          <h2 className="text-[#F5F5F3] text-[15px] font-semibold">New project</h2>
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="w-7 h-7 grid place-items-center rounded-[6px] text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-neutral-400 disabled:hover:bg-transparent"
+            className="w-7 h-7 grid place-items-center rounded-[6px] text-neutral-400 hover:text-[#F5F5F3] hover:bg-white/[0.06] transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-neutral-400 disabled:hover:bg-transparent"
           >
             <X size={16} />
           </button>
@@ -226,13 +226,13 @@ export function NewProjectModal({ open, onClose, onCreated }: Props) {
                     ? 'https://twitch.tv/yourchannel'
                     : 'https://youtube.com/watch?v=…'
                 }
-                className="w-full px-3.5 py-2.5 pr-24 bg-white/[0.04] text-white text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-violet-500/40 placeholder-neutral-600 transition-colors"
+                className="w-full px-3.5 py-2.5 pr-24 bg-white/[0.04] text-[#F5F5F3] text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-[#22E55F]/40 placeholder-neutral-600 transition-colors"
               />
               {platform && (
                 <span
                   className={`absolute right-2.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 h-5 px-1.5 rounded-full text-[10.5px] font-medium ring-1 ${
                     platform === 'twitch'
-                      ? 'text-violet-300 bg-violet-400/10 ring-violet-400/25'
+                      ? 'text-[#22E55F] bg-[#22E55F]/10 ring-[#22E55F]/25'
                       : 'text-red-300 bg-red-400/10 ring-red-400/25'
                   }`}
                 >
@@ -254,14 +254,14 @@ export function NewProjectModal({ open, onClose, onCreated }: Props) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={defaultName(trimmedUrl)}
-              className="w-full px-3.5 py-2.5 bg-white/[0.04] text-white text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-violet-500/40 placeholder-neutral-600 transition-colors"
+              className="w-full px-3.5 py-2.5 bg-white/[0.04] text-[#F5F5F3] text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-[#22E55F]/40 placeholder-neutral-600 transition-colors"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-11 bg-violet-600 hover:bg-violet-500 text-white text-[13.5px] font-semibold rounded-[9px] transition-colors disabled:opacity-50"
+            className="w-full h-11 bg-[#22E55F] hover:bg-[#35f16d] text-[#0A0A0A] text-[13.5px] font-semibold rounded-[9px] transition-colors disabled:opacity-50"
           >
             {loading ? 'Creating project…' : 'Create project'}
           </button>
@@ -285,7 +285,9 @@ function SegmentButton({
       type="button"
       onClick={onClick}
       className={`h-9 inline-flex items-center justify-center gap-1.5 rounded-[6px] text-[12.5px] font-medium transition-colors ${
-        active ? 'bg-white/[0.09] text-white' : 'text-neutral-400 hover:text-neutral-200'
+        active
+          ? 'bg-[#22E55F]/15 text-[#22E55F] ring-1 ring-[#22E55F]/25'
+          : 'text-neutral-400 hover:text-neutral-200'
       }`}
     >
       {children}

@@ -96,7 +96,7 @@ export function ClipCard({ clip }: { clip: Clip }) {
             className="absolute inset-0 grid place-items-center opacity-0 group-hover:opacity-100 bg-black/25 transition-opacity"
             aria-label="Play clip"
           >
-            <span className="grid place-items-center w-11 h-11 rounded-full bg-white/90 text-black shadow-lg">
+            <span className="grid place-items-center w-11 h-11 rounded-full bg-[#22E55F] text-[#0A0A0A] shadow-lg">
               <Play size={18} className="ml-0.5 fill-current" />
             </span>
           </button>
@@ -118,7 +118,7 @@ export function ClipCard({ clip }: { clip: Clip }) {
         {/* Edited marker — this clip has saved trim/caption edits. */}
         {edited && (
           <div className="absolute bottom-2 left-2 inline-flex items-center gap-1 h-5 px-1.5 rounded-full bg-black/55 backdrop-blur-sm ring-1 ring-white/10">
-            <Scissors size={9} className="text-violet-300" />
+            <Scissors size={9} className="text-[#22E55F]" />
             <span className="text-[9.5px] font-medium text-neutral-200 leading-none">Edited</span>
           </div>
         )}
@@ -146,13 +146,13 @@ export function ClipCard({ clip }: { clip: Clip }) {
                 className={`relative grid place-items-center w-7 h-7 rounded-[6px] ring-1 transition-colors ${
                   isPosted
                     ? 'bg-white/[0.10] ring-white/15'
-                    : 'bg-white/[0.04] ring-white/[0.06] text-neutral-400 hover:text-white hover:bg-white/[0.08]'
+                    : 'bg-white/[0.04] ring-white/[0.06] text-neutral-400 hover:text-[#F5F5F3] hover:bg-white/[0.08]'
                 }`}
                 style={isPosted ? { color } : undefined}
               >
                 <Icon size={14} />
                 {isPosted && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#0a0a0b]" />
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#22E55F] ring-2 ring-[#0A0A0A]" />
                 )}
               </button>
             )
@@ -169,8 +169,8 @@ export function ClipCard({ clip }: { clip: Clip }) {
               aria-pressed={crop === 'center'}
               className={`ml-auto grid place-items-center w-7 h-7 rounded-[6px] ring-1 transition-colors disabled:opacity-50 ${
                 crop === 'center'
-                  ? 'bg-violet-500/15 ring-violet-400/30 text-violet-200 hover:bg-violet-500/25'
-                  : 'bg-white/[0.04] ring-white/[0.06] text-neutral-400 hover:text-white hover:bg-white/[0.08]'
+                  ? 'bg-[#22E55F]/15 ring-[#22E55F]/30 text-[#22E55F] hover:bg-[#22E55F]/25'
+                  : 'bg-white/[0.04] ring-white/[0.06] text-neutral-400 hover:text-[#F5F5F3] hover:bg-white/[0.08]'
               }`}
             >
               <Crop size={14} />
@@ -188,8 +188,8 @@ export function ClipCard({ clip }: { clip: Clip }) {
               aria-label="Edit clip"
               className={`ml-auto grid place-items-center w-7 h-7 rounded-[6px] ring-1 transition-colors ${
                 edited
-                  ? 'bg-violet-500/15 ring-violet-400/30 text-violet-200 hover:bg-violet-500/25'
-                  : 'bg-white/[0.04] ring-white/[0.06] text-neutral-400 hover:text-white hover:bg-white/[0.08]'
+                  ? 'bg-[#22E55F]/15 ring-[#22E55F]/30 text-[#22E55F] hover:bg-[#22E55F]/25'
+                  : 'bg-white/[0.04] ring-white/[0.06] text-neutral-400 hover:text-[#F5F5F3] hover:bg-white/[0.08]'
               }`}
             >
               <Scissors size={14} />

@@ -63,7 +63,7 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             required
             placeholder="you@example.com"
-            className="w-full px-3.5 py-2.5 bg-white/[0.04] text-white text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-violet-500/40 placeholder-neutral-600 transition-colors"
+            className="w-full px-3.5 py-2.5 bg-white/[0.04] text-[#F5F5F3] text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-[#22E55F]/40 placeholder-neutral-600 transition-colors"
           />
         </div>
         <div>
@@ -75,7 +75,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="••••••••"
-              className="w-full px-3.5 py-2.5 pr-10 bg-white/[0.04] text-white text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-violet-500/40 placeholder-neutral-600 transition-colors"
+              className="w-full px-3.5 py-2.5 pr-10 bg-white/[0.04] text-[#F5F5F3] text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-[#22E55F]/40 placeholder-neutral-600 transition-colors"
             />
             <button
               type="button"
@@ -89,7 +89,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full h-11 bg-violet-600 hover:bg-violet-500 text-white text-[13.5px] font-semibold rounded-[9px] transition-colors disabled:opacity-50"
+          className="w-full h-11 bg-[#22E55F] hover:bg-[#35f16d] text-[#0A0A0A] text-[13.5px] font-semibold rounded-[9px] transition-colors disabled:opacity-50"
         >
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
@@ -97,7 +97,7 @@ export default function LoginPage() {
 
       <p className="mt-5 text-center text-neutral-500 text-[12.5px]">
         Don't have an account?{' '}
-        <Link to="/signup" className="text-neutral-300 hover:text-white transition-colors">
+        <Link to="/signup" className="text-neutral-300 hover:text-[#F5F5F3] transition-colors">
           Sign up
         </Link>
       </p>

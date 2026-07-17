@@ -104,7 +104,7 @@ export function EditorPreview({
             aria-label="Play"
             className="absolute inset-0 grid place-items-center bg-black/15 hover:bg-black/25 transition-colors"
           >
-            <span className="grid place-items-center w-14 h-14 rounded-full bg-white/90 text-black shadow-lg">
+            <span className="grid place-items-center w-14 h-14 rounded-full bg-[#22E55F] text-[#0A0A0A] shadow-lg">
               <Play size={22} className="ml-0.5 fill-current" />
             </span>
           </button>

@@ -3,7 +3,7 @@ import { ArrowLeft, Check, Crop, Loader2, Pause, Play, Redo2, Undo2 } from 'luci
 import type { Caption, Clip, CaptionStyle, ClipEdits } from '../../../types'
 import { formatDuration } from '../../../lib/format'
 import { colorFor } from '../../../lib/placeholder'
-import { createCaption } from '../../../lib/captions'
+import { CAPTION_MIN_DURATION, createCaption } from '../../../lib/captions'
 import { saveClipEdits } from '../../../services/projects'
 import { showToast } from '../../../lib/toast'
 import { EditorPreview } from './EditorPreview'
@@ -223,7 +223,12 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
   // ── caption actions ───────────────────────────────────────────────────────
   const addCaption = useCallback(() => {
     pushSnapshot()
-    const cap = createCaption(currentTime, duration || 1)
+    const { start, end } = trimRef.current
+    const windowStart = duration > 0 ? start : 0
+    const windowEnd = duration > 0 ? end || duration : 1
+    const latestStart = Math.max(windowStart, windowEnd - CAPTION_MIN_DURATION)
+    const at = Math.max(windowStart, Math.min(currentTime, latestStart))
+    const cap = createCaption(at, windowEnd)
     setCaptions((cs) => [...cs, cap])
     setSelectedId(cap.id)
     setDirty(true)
@@ -305,13 +310,13 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
   const bgColor = colorFor(clip.id)
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0a0a0b] flex flex-col text-white">
+    <div className="fixed inset-0 z-50 bg-[#0A0A0A] flex flex-col text-[#F5F5F3]">
       {/* Header */}
       <header className="h-14 shrink-0 flex items-center gap-3 px-4 border-b border-white/[0.06]">
         <button
           type="button"
           onClick={requestClose}
-          className="inline-flex items-center gap-1.5 h-8 pl-2 pr-3 text-[13px] text-neutral-300 hover:text-white hover:bg-white/[0.06] rounded-[7px] transition-colors"
+          className="inline-flex items-center gap-1.5 h-8 pl-2 pr-3 text-[13px] text-neutral-300 hover:text-[#F5F5F3] hover:bg-white/[0.06] rounded-[7px] transition-colors"
         >
           <ArrowLeft size={16} /> Back
         </button>
@@ -320,7 +325,7 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
           value={title}
           onFocus={pushSnapshot}
           onChange={(e) => setTitleValue(e.target.value)}
-          className="min-w-0 flex-1 max-w-md bg-transparent text-[14px] font-medium text-white outline-none rounded-[6px] px-2 py-1 focus:bg-white/[0.04] transition-colors"
+          className="min-w-0 flex-1 max-w-md bg-transparent text-[14px] font-medium text-[#F5F5F3] outline-none rounded-[6px] px-2 py-1 focus:bg-white/[0.04] transition-colors"
           placeholder="Clip title"
         />
         <div className="ml-auto flex items-center gap-1.5">
@@ -331,8 +336,8 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
             title={crop === 'center' ? 'Center crop on — show full frame' : 'Center crop to 9:16'}
             className={`inline-flex items-center gap-1.5 h-8 px-2.5 text-[12px] font-medium rounded-[7px] transition-colors ${
               crop === 'center'
-                ? 'bg-violet-500/15 text-violet-200 ring-1 ring-violet-400/30'
-                : 'text-neutral-400 hover:text-white hover:bg-white/[0.06]'
+                ? 'bg-[#22E55F]/15 text-[#22E55F] ring-1 ring-[#22E55F]/30'
+                : 'text-neutral-400 hover:text-[#F5F5F3] hover:bg-white/[0.06]'
             }`}
           >
             <Crop size={14} /> Center crop
@@ -348,7 +353,7 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
             type="button"
             onClick={() => void save()}
             disabled={saving || (!dirty && !saved)}
-            className="ml-1 inline-flex items-center gap-1.5 h-9 px-4 text-[13px] font-semibold text-white bg-violet-600 hover:bg-violet-500 rounded-[8px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="ml-1 inline-flex items-center gap-1.5 h-9 px-4 text-[13px] font-semibold text-[#0A0A0A] bg-[#22E55F] hover:bg-[#35f16d] rounded-[8px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {saving ? (
               <>
@@ -397,7 +402,7 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
             <button
               type="button"
               onClick={togglePlay}
-              className="grid place-items-center w-9 h-9 rounded-full bg-white/[0.08] hover:bg-white/[0.14] text-white transition-colors"
+              className="grid place-items-center w-9 h-9 rounded-full bg-[#22E55F] hover:bg-[#35f16d] text-[#0A0A0A] transition-colors"
               aria-label={playing ? 'Pause' : 'Play'}
             >
               {playing ? <Pause size={16} className="fill-current" /> : <Play size={16} className="ml-0.5 fill-current" />}
@@ -436,7 +441,7 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
         </div>
 
         {/* Caption inspector */}
-        <aside className="w-[300px] shrink-0 border-l border-white/[0.06] bg-[#0d0d0f]">
+        <aside className="w-[300px] shrink-0 border-l border-white/[0.06] bg-[#171717]">
           <CaptionInspector
             captions={captions}
             selectedId={selectedId}
@@ -473,7 +478,7 @@ function IconBtn({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="grid place-items-center w-8 h-8 rounded-[7px] text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-400"
+      className="grid place-items-center w-8 h-8 rounded-[7px] text-neutral-400 hover:text-[#F5F5F3] hover:bg-white/[0.06] transition-colors disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-400"
     >
       {children}
     </button>

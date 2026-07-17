@@ -40,6 +40,8 @@ export function CaptionOverlayLayer({
   const layerRef = useRef<HTMLDivElement>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const editRef = useRef<HTMLDivElement>(null)
+  const captionsRef = useRef(captions)
+  captionsRef.current = captions
 
   const active = visibleCaptions(captions, currentTime)
 
@@ -49,7 +51,7 @@ export function CaptionOverlayLayer({
   useEffect(() => {
     if (!editingId) return
     const el = editRef.current
-    const cap = captions.find((c) => c.id === editingId)
+    const cap = captionsRef.current.find((c) => c.id === editingId)
     if (!el || !cap) return
     el.textContent = cap.text
     el.focus()
@@ -58,7 +60,7 @@ export function CaptionOverlayLayer({
     const sel = window.getSelection()
     sel?.removeAllRanges()
     sel?.addRange(range)
-  }, [editingId, captions])
+  }, [editingId])
 
   const commitEdit = () => {
     const el = editRef.current
@@ -122,7 +124,7 @@ export function CaptionOverlayLayer({
               transform: 'translate(-50%, -50%)',
               maxWidth: '86%',
               cursor: editable ? (isEditing ? 'text' : 'move') : 'default',
-              outline: selected ? '1.5px solid rgba(139,92,246,0.9)' : undefined,
+              outline: selected ? '1.5px solid rgba(34,229,95,0.9)' : undefined,
               outlineOffset: 2,
               borderRadius: 4,
               ...captionBoxStyle(cap.style, scale),
@@ -134,12 +136,16 @@ export function CaptionOverlayLayer({
                 contentEditable
                 suppressContentEditableWarning
                 onBlur={commitEdit}
+                onInput={(e) => {
+                  if (editingId) onEditText?.(editingId, e.currentTarget.textContent ?? '')
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') {
                     e.preventDefault()
                     commitEdit()
                   }
-                  e.stopPropagation() // don't trip editor shortcuts while typing
+                  const isSave = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's'
+                  if (!isSave) e.stopPropagation() // don't trip editor shortcuts while typing
                 }}
                 style={{ ...captionTextStyle(cap.style, scale), outline: 'none', minWidth: 12 }}
               />

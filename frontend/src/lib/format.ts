@@ -44,10 +44,10 @@ export function viralityTone(score100: number): {
   bar: string
 } {
   if (score100 >= 85)
-    return { text: 'text-emerald-300', ring: 'ring-emerald-400/30', bg: 'bg-emerald-400/10', bar: '#6ee7b7' }
+    return { text: 'text-[#22E55F]', ring: 'ring-[#22E55F]/30', bg: 'bg-[#22E55F]/10', bar: '#22E55F' }
   if (score100 >= 70)
-    return { text: 'text-lime-300', ring: 'ring-lime-400/30', bg: 'bg-lime-400/10', bar: '#bef264' }
+    return { text: 'text-[#F5F5F3]', ring: 'ring-white/20', bg: 'bg-white/[0.08]', bar: '#F5F5F3' }
   if (score100 >= 55)
-    return { text: 'text-amber-300', ring: 'ring-amber-400/30', bg: 'bg-amber-400/10', bar: '#fcd34d' }
+    return { text: 'text-neutral-300', ring: 'ring-white/15', bg: 'bg-white/[0.06]', bar: '#737373' }
   return { text: 'text-neutral-300', ring: 'ring-white/15', bg: 'bg-white/[0.06]', bar: '#d4d4d4' }
 }

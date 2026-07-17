@@ -107,11 +107,11 @@ export function PostModal({ open, clip, platform, onClose, onPost }: Props) {
   return (
     <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-[#111113] ring-1 ring-white/[0.08] rounded-[12px] w-full max-w-md overflow-hidden"
+        className="bg-[#171717] ring-1 ring-white/[0.08] rounded-[12px] w-full max-w-md overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
-          <h2 className="flex items-center gap-2 text-white text-[15px] font-semibold">
+          <h2 className="flex items-center gap-2 text-[#F5F5F3] text-[15px] font-semibold">
             <span className="grid place-items-center w-6 h-6 rounded-[6px] bg-white/[0.06]" style={{ color: meta.color }}>
               <meta.Icon size={14} />
             </span>
@@ -120,7 +120,7 @@ export function PostModal({ open, clip, platform, onClose, onPost }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="w-7 h-7 grid place-items-center rounded-[6px] text-neutral-400 hover:text-white hover:bg-white/[0.06] transition-colors"
+            className="w-7 h-7 grid place-items-center rounded-[6px] text-neutral-400 hover:text-[#F5F5F3] hover:bg-white/[0.06] transition-colors"
           >
             <X size={16} />
           </button>
@@ -147,7 +147,7 @@ export function PostModal({ open, clip, platform, onClose, onPost }: Props) {
               onChange={(e) => setCaption(e.target.value)}
               rows={4}
               disabled={phase !== 'edit'}
-              className="w-full px-3 py-2 bg-white/[0.04] text-white text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-violet-500/40 placeholder-neutral-600 resize-none transition-colors disabled:opacity-60"
+              className="w-full px-3 py-2 bg-white/[0.04] text-[#F5F5F3] text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-[#22E55F]/40 placeholder-neutral-600 resize-none transition-colors disabled:opacity-60"
               placeholder="Write a caption…"
             />
             {alreadyPosted && phase === 'edit' && (
@@ -166,7 +166,7 @@ export function PostModal({ open, clip, platform, onClose, onPost }: Props) {
                     type="button"
                     onClick={() => void connect()}
                     disabled={connecting}
-                    className="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11.5px] font-semibold text-white bg-violet-600 hover:bg-violet-500 rounded-[6px] transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11.5px] font-semibold text-[#0A0A0A] bg-[#22E55F] hover:bg-[#35f16d] rounded-[6px] transition-colors disabled:opacity-50"
                   >
                     {connecting ? <Loader2 size={12} className="animate-spin" /> : <ExternalLink size={12} />}
                     Connect {meta.label}
@@ -175,7 +175,7 @@ export function PostModal({ open, clip, platform, onClose, onPost }: Props) {
                     <button
                       type="button"
                       onClick={() => void refreshAccounts()}
-                      className="inline-flex items-center gap-1 h-7 px-2 text-[11.5px] text-neutral-300 hover:text-white rounded-[6px] hover:bg-white/[0.06] transition-colors"
+                      className="inline-flex items-center gap-1 h-7 px-2 text-[11.5px] text-neutral-300 hover:text-[#F5F5F3] rounded-[6px] hover:bg-white/[0.06] transition-colors"
                     >
                       <RefreshCw size={11} /> Check again
                     </button>
@@ -196,7 +196,7 @@ export function PostModal({ open, clip, platform, onClose, onPost }: Props) {
               'Social posting unavailable'
             ) : linked ? (
               <>
-                <Link2 size={11} className="text-emerald-400" />
+                <Link2 size={11} className="text-[#22E55F]" />
                 <span className="truncate">
                   {linkedAccount?.name ? `Linked: ${linkedAccount.name}` : `${meta.label} linked`}
                 </span>
@@ -209,7 +209,7 @@ export function PostModal({ open, clip, platform, onClose, onPost }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="h-9 px-4 text-[13px] text-neutral-300 hover:text-white rounded-[7px] transition-colors"
+              className="h-9 px-4 text-[13px] text-neutral-300 hover:text-[#F5F5F3] rounded-[7px] transition-colors"
             >
               Cancel
             </button>
@@ -217,7 +217,7 @@ export function PostModal({ open, clip, platform, onClose, onPost }: Props) {
               type="button"
               onClick={submit}
               disabled={phase !== 'edit' || !linked || caption.trim().length === 0}
-              className="h-9 px-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-violet-600 hover:bg-violet-500 rounded-[7px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="h-9 px-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-[#0A0A0A] bg-[#22E55F] hover:bg-[#35f16d] rounded-[7px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {phase === 'done' ? (
                 <>

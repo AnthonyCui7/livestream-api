@@ -125,7 +125,7 @@ export default function ProjectDetailPage() {
     return (
       <div className="text-center py-24">
         <p className="text-neutral-400 text-[14px]">Project not found.</p>
-        <Link to="/" className="text-violet-300 text-[13px] hover:underline mt-2 inline-block">
+        <Link to="/" className="text-[#22E55F] text-[13px] hover:underline mt-2 inline-block">
           Back to projects
         </Link>
       </div>
@@ -136,7 +136,7 @@ export default function ProjectDetailPage() {
     <div>
       <Link
         to="/"
-        className="inline-flex items-center gap-1.5 text-neutral-400 hover:text-white text-[12.5px] mb-4 transition-colors"
+        className="inline-flex items-center gap-1.5 text-neutral-400 hover:text-[#F5F5F3] text-[12.5px] mb-4 transition-colors"
       >
         <ArrowLeft size={14} />
         Projects
@@ -145,7 +145,7 @@ export default function ProjectDetailPage() {
       <div className="flex items-start justify-between gap-4 mb-6">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-white text-[20px] font-semibold tracking-tight truncate">
+            <h1 className="text-[#F5F5F3] text-[20px] font-semibold tracking-tight truncate">
               {project.name}
             </h1>
             <StatusPill status={project.status} />
@@ -174,9 +174,9 @@ export default function ProjectDetailPage() {
 
       {/* Live progress banner while clips are being found (or the worker winds down). */}
       {(isWorking || isStopping) && (
-        <div className="flex items-center gap-2.5 px-4 py-3 mb-5 bg-violet-500/[0.07] ring-1 ring-violet-400/20 rounded-[9px]">
-          <Loader2 size={15} className="text-violet-300 animate-spin" />
-          <span className="text-violet-200 text-[12.5px]">
+        <div className="flex items-center gap-2.5 px-4 py-3 mb-5 bg-[#22E55F]/10 ring-1 ring-[#22E55F]/20 rounded-[9px]">
+          <Loader2 size={15} className="text-[#22E55F] animate-spin" />
+          <span className="text-[#22E55F] text-[12.5px]">
             {project.status === 'created'
               ? 'Queued — spinning up the clip worker…'
               : project.status === 'stopping'
@@ -262,7 +262,9 @@ function SortButton({
       type="button"
       onClick={onClick}
       className={`h-6 px-2.5 rounded-[5px] text-[11.5px] font-medium transition-colors ${
-        active ? 'bg-white/[0.09] text-white' : 'text-neutral-400 hover:text-neutral-200'
+        active
+          ? 'bg-[#22E55F]/15 text-[#22E55F] ring-1 ring-[#22E55F]/25'
+          : 'text-neutral-400 hover:text-neutral-200'
       }`}
     >
       {children}

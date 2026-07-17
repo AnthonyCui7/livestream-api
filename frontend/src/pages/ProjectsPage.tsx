@@ -50,7 +50,7 @@ export default function ProjectsPage() {
     <div>
       <div className="flex items-end justify-between mb-6">
         <div>
-          <h1 className="text-white text-[22px] font-semibold tracking-tight">Projects</h1>
+          <h1 className="text-[#F5F5F3] text-[22px] font-semibold tracking-tight">Projects</h1>
           <p className="text-neutral-500 text-[13px] mt-0.5">
             Upload a video or drop a stream link — clips come back with virality scores.
           </p>
@@ -58,7 +58,7 @@ export default function ProjectsPage() {
         <button
           type="button"
           onClick={() => setCreating(true)}
-          className="inline-flex items-center gap-1.5 h-9 px-3.5 bg-violet-600 hover:bg-violet-500 text-white text-[13px] font-semibold rounded-[8px] transition-colors"
+          className="inline-flex items-center gap-1.5 h-9 px-3.5 bg-[#22E55F] hover:bg-[#35f16d] text-[#0A0A0A] text-[13px] font-semibold rounded-[8px] transition-colors"
         >
           <Plus size={15} />
           New project
@@ -102,7 +102,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center text-center py-24">
       <span className="grid place-items-center w-12 h-12 rounded-[12px] bg-white/[0.04] ring-1 ring-white/[0.06] mb-4">
-        <Sparkles size={22} className="text-violet-300" />
+        <Sparkles size={22} className="text-[#22E55F]" />
       </span>
       <div className="text-neutral-200 text-[15px] font-medium mb-1">No projects yet</div>
       <p className="text-neutral-500 text-[12.5px] max-w-xs mb-5">
@@ -112,7 +112,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       <button
         type="button"
         onClick={onCreate}
-        className="inline-flex items-center gap-1.5 h-9 px-3.5 bg-violet-600 hover:bg-violet-500 text-white text-[13px] font-semibold rounded-[8px] transition-colors"
+        className="inline-flex items-center gap-1.5 h-9 px-3.5 bg-[#22E55F] hover:bg-[#35f16d] text-[#0A0A0A] text-[13px] font-semibold rounded-[8px] transition-colors"
       >
         <Plus size={15} />
         New project

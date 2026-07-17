@@ -41,7 +41,7 @@ export function ClipThumbnail({ clip, crop }: { clip: Clip; crop?: 'center' | nu
   // on the parent's solid color so the layout never jumps.
   return (
     <div aria-hidden="true" className="absolute inset-0 grid place-items-center">
-      <Clapperboard size={20} className="text-white/30" />
+      <Clapperboard size={20} className="text-[#F5F5F3]/30" />
     </div>
   )
 }

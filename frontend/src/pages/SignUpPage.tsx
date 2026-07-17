@@ -41,16 +41,16 @@ export default function SignUpPage() {
       <AuthShell subtitle="Turn long video into viral clips">
         <div className="text-center">
           <span className="grid place-items-center w-12 h-12 mx-auto rounded-[12px] bg-white/[0.04] ring-1 ring-white/[0.06] mb-4">
-            <MailCheck size={22} className="text-violet-300" />
+            <MailCheck size={22} className="text-[#22E55F]" />
           </span>
-          <h2 className="text-white text-[15px] font-medium mb-1.5">Confirm your email</h2>
+          <h2 className="text-[#F5F5F3] text-[15px] font-medium mb-1.5">Confirm your email</h2>
           <p className="text-neutral-500 text-[12.5px] mb-6">
             We sent a confirmation link to <span className="text-neutral-300">{email}</span>. Click
             it, then sign in.
           </p>
           <Link
             to="/login"
-            className="inline-block w-full h-11 leading-[44px] bg-violet-600 hover:bg-violet-500 text-white text-[13.5px] font-semibold rounded-[9px] transition-colors"
+            className="inline-block w-full h-11 leading-[44px] bg-[#22E55F] hover:bg-[#35f16d] text-[#0A0A0A] text-[13.5px] font-semibold rounded-[9px] transition-colors"
           >
             Back to sign in
           </Link>
@@ -93,7 +93,7 @@ export default function SignUpPage() {
             onChange={(e) => setEmail(e.target.value)}
             required
             placeholder="you@example.com"
-            className="w-full px-3.5 py-2.5 bg-white/[0.04] text-white text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-violet-500/40 placeholder-neutral-600 transition-colors"
+            className="w-full px-3.5 py-2.5 bg-white/[0.04] text-[#F5F5F3] text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-[#22E55F]/40 placeholder-neutral-600 transition-colors"
           />
         </div>
         <div>
@@ -106,7 +106,7 @@ export default function SignUpPage() {
               required
               minLength={6}
               placeholder="At least 6 characters"
-              className="w-full px-3.5 py-2.5 pr-10 bg-white/[0.04] text-white text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-violet-500/40 placeholder-neutral-600 transition-colors"
+              className="w-full px-3.5 py-2.5 pr-10 bg-white/[0.04] text-[#F5F5F3] text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-[#22E55F]/40 placeholder-neutral-600 transition-colors"
             />
             <button
               type="button"
@@ -120,7 +120,7 @@ export default function SignUpPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full h-11 bg-violet-600 hover:bg-violet-500 text-white text-[13.5px] font-semibold rounded-[9px] transition-colors disabled:opacity-50"
+          className="w-full h-11 bg-[#22E55F] hover:bg-[#35f16d] text-[#0A0A0A] text-[13.5px] font-semibold rounded-[9px] transition-colors disabled:opacity-50"
         >
           {loading ? 'Creating account…' : 'Create account'}
         </button>
@@ -128,7 +128,7 @@ export default function SignUpPage() {
 
       <p className="mt-5 text-center text-neutral-500 text-[12.5px]">
         Already have an account?{' '}
-        <Link to="/login" className="text-neutral-300 hover:text-white transition-colors">
+        <Link to="/login" className="text-neutral-300 hover:text-[#F5F5F3] transition-colors">
           Sign in
         </Link>
       </p>

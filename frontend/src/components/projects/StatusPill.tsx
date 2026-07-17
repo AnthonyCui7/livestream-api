@@ -4,17 +4,17 @@ const CONFIG: Record<
   ProjectStatus,
   { label: string; cls: string; pulse?: boolean }
 > = {
-  created: { label: 'Queued', cls: 'text-sky-300 bg-sky-400/10 ring-sky-400/25', pulse: true },
+  created: { label: 'Queued', cls: 'text-[#22E55F] bg-[#22E55F]/10 ring-[#22E55F]/25', pulse: true },
   ingesting: {
     label: 'Finding clips',
-    cls: 'text-violet-300 bg-violet-400/10 ring-violet-400/25',
+    cls: 'text-[#22E55F] bg-[#22E55F]/10 ring-[#22E55F]/25',
     pulse: true,
   },
-  ready: { label: 'Ready', cls: 'text-emerald-300 bg-emerald-400/10 ring-emerald-400/25' },
+  ready: { label: 'Ready', cls: 'text-[#22E55F] bg-[#22E55F]/10 ring-[#22E55F]/25' },
   failed: { label: 'Failed', cls: 'text-red-300 bg-red-400/10 ring-red-400/25' },
   stopping: {
     label: 'Stopping…',
-    cls: 'text-amber-300 bg-amber-400/10 ring-amber-400/25',
+    cls: 'text-neutral-300 bg-white/[0.06] ring-white/15',
     pulse: true,
   },
   cancelled: { label: 'Cancelled', cls: 'text-neutral-300 bg-white/[0.06] ring-white/15' },

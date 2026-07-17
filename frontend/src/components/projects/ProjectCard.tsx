@@ -42,7 +42,7 @@ export function ProjectCard({ project, onDelete }: Props) {
         </div>
 
         <div className="px-3.5 py-3">
-          <h3 className="text-white text-[13.5px] font-medium truncate">{project.name}</h3>
+          <h3 className="text-[#F5F5F3] text-[13.5px] font-medium truncate">{project.name}</h3>
           <div className="mt-1 flex items-center gap-1.5 text-neutral-500 text-[11.5px]">
             <SourceLabel project={project} />
             <span className="text-neutral-700">·</span>
@@ -62,13 +62,13 @@ export function ProjectCard({ project, onDelete }: Props) {
             e.preventDefault()
             setMenuOpen((v) => !v)
           }}
-          className="w-7 h-7 grid place-items-center rounded-[6px] bg-black/45 text-neutral-300 hover:text-white opacity-0 group-hover:opacity-100 transition"
+          className="w-7 h-7 grid place-items-center rounded-[6px] bg-black/45 text-neutral-300 hover:text-[#F5F5F3] opacity-0 group-hover:opacity-100 transition"
           title="More"
         >
           <MoreHorizontal size={15} />
         </button>
         {menuOpen && (
-          <div className="absolute right-0 top-full mt-1 bg-[#131316] ring-1 ring-white/[0.08] rounded-[6px] shadow-lg overflow-hidden min-w-[130px] z-10">
+          <div className="absolute right-0 top-full mt-1 bg-[#171717] ring-1 ring-white/[0.08] rounded-[6px] shadow-lg overflow-hidden min-w-[130px] z-10">
             <button
               type="button"
               onClick={(e) => {
@@ -88,7 +88,7 @@ export function ProjectCard({ project, onDelete }: Props) {
 }
 
 function SourceGlyph({ project }: { project: Project }) {
-  const cls = 'text-white/85'
+  const cls = 'text-[#F5F5F3]/85'
   if (project.sourceType === 'upload') return <Upload size={28} className={cls} />
   // video / livestream → show the platform mark.
   return project.streamPlatform === 'twitch' ? (
