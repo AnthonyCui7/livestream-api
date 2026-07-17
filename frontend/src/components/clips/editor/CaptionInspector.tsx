@@ -44,16 +44,30 @@ export function CaptionInspector({
 }: Props) {
   const selected = captions.find((c) => c.id === selectedId) ?? null
 
+  // The editor section is ALWAYS rendered — greyed out and inert until a
+  // caption is selected (adding one auto-selects it). `display` feeds the
+  // controls their values in the disabled state.
+  const placeholder: Caption = {
+    id: '',
+    text: '',
+    startSeconds: 0,
+    endSeconds: 0,
+    x: 0.5,
+    y: 0.84,
+    style: { ...CAPTION_PRESETS.pill },
+  }
+  const display = selected ?? placeholder
+
   // Discrete change: snapshot, then mutate.
   const setStyle = (patch: Partial<CaptionStyle>) => {
     if (!selected) return
     onGestureStart()
-    onUpdateStyle(selected.id, patch)
+    onUpdateStyle(display.id, patch)
   }
   const setField = (patch: Partial<Caption>) => {
     if (!selected) return
     onGestureStart()
-    onUpdate(selected.id, patch)
+    onUpdate(display.id, patch)
   }
 
   return (
@@ -113,16 +127,23 @@ export function CaptionInspector({
           })}
         </div>
 
-        {/* Selected caption editor */}
-        {selected && (
-          <div className="border-t border-white/[0.06] p-4 space-y-4">
+        {/* Caption editor — always present; disabled until a caption is selected. */}
+        <fieldset
+          disabled={!selected}
+          // min-w-0 overrides the fieldset default min-inline-size:min-content,
+          // which otherwise blocks shrinking to the sidebar width and skews the
+          // controls' hit areas.
+          className={`min-w-0 border-t border-white/[0.06] p-4 space-y-4 transition-opacity ${
+            selected ? '' : 'opacity-40 pointer-events-none select-none'
+          }`}
+        >
             {/* Text */}
             <div>
               <Label>Text</Label>
               <textarea
-                value={selected.text}
+                value={display.text}
                 onFocus={onGestureStart}
-                onChange={(e) => onUpdate(selected.id, { text: e.target.value })}
+                onChange={(e) => onUpdate(display.id, { text: e.target.value })}
                 rows={2}
                 className="w-full px-3 py-2 bg-white/[0.04] text-[#F5F5F3] text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-[#22E55F]/40 placeholder-neutral-600 resize-none transition-colors"
                 placeholder="Caption text…"
@@ -135,19 +156,19 @@ export function CaptionInspector({
               <div className="flex items-center gap-2">
                 <TimeButton
                   label="In"
-                  value={selected.startSeconds}
+                  value={display.startSeconds}
                   onClick={() =>
                     setField({
-                      startSeconds: Math.max(0, Math.min(currentTime, selected.endSeconds - 0.3)),
+                      startSeconds: Math.max(0, Math.min(currentTime, display.endSeconds - 0.3)),
                     })
                   }
                 />
                 <TimeButton
                   label="Out"
-                  value={selected.endSeconds}
+                  value={display.endSeconds}
                   onClick={() =>
                     setField({
-                      endSeconds: Math.min(duration, Math.max(currentTime, selected.startSeconds + 0.3)),
+                      endSeconds: Math.min(duration, Math.max(currentTime, display.startSeconds + 0.3)),
                     })
                   }
                 />
@@ -174,7 +195,7 @@ export function CaptionInspector({
                       })
                     }
                     className={`h-7 rounded-[5px] text-[11.5px] font-medium transition-colors ${
-                      selected.style.preset === p
+                      display.style.preset === p
                         ? 'bg-[#22E55F]/15 text-[#22E55F]'
                         : 'text-neutral-400 hover:text-neutral-200'
                     }`}
@@ -187,15 +208,15 @@ export function CaptionInspector({
 
             {/* Font size */}
             <div>
-              <Label>Size · {Math.round(selected.style.fontSize)}</Label>
+              <Label>Size · {Math.round(display.style.fontSize)}</Label>
               <input
                 type="range"
                 min={24}
                 max={140}
                 step={1}
-                value={selected.style.fontSize}
+                value={display.style.fontSize}
                 onPointerDown={onGestureStart}
-                onChange={(e) => onUpdateStyle(selected.id, { fontSize: Number(e.target.value) })}
+                onChange={(e) => onUpdateStyle(display.id, { fontSize: Number(e.target.value) })}
                 className="w-full accent-[#22E55F]"
               />
             </div>
@@ -205,9 +226,9 @@ export function CaptionInspector({
               <div>
                 <Label>Fill</Label>
                 <ColorSwatch
-                  value={selected.style.color}
+                  value={display.style.color}
                   onGestureStart={onGestureStart}
-                  onChange={(color) => onUpdateStyle(selected.id, { color })}
+                  onChange={(color) => onUpdateStyle(display.id, { color })}
                 />
               </div>
               <div className="flex-1">
@@ -219,7 +240,7 @@ export function CaptionInspector({
                       type="button"
                       onClick={() => setStyle({ align: value })}
                       className={`h-7 grid place-items-center rounded-[5px] transition-colors ${
-                        selected.style.align === value
+                        display.style.align === value
                           ? 'bg-[#22E55F]/15 text-[#22E55F]'
                           : 'text-neutral-400 hover:text-neutral-200'
                       }`}
@@ -234,36 +255,36 @@ export function CaptionInspector({
             {/* Background pill */}
             <ToggleRow
               label="Background pill"
-              on={selected.style.background !== null}
+              on={display.style.background !== null}
               onToggle={() =>
-                setStyle({ background: selected.style.background ? null : { color: '#000000', opacity: 0.72 } })
+                setStyle({ background: display.style.background ? null : { color: '#000000', opacity: 0.72 } })
               }
             >
-              {selected.style.background && (
+              {display.style.background && (
                 <div className="mt-2 flex items-center gap-3">
                   <ColorSwatch
-                    value={selected.style.background.color}
+                    value={display.style.background.color}
                     onGestureStart={onGestureStart}
                     onChange={(color) =>
-                      onUpdateStyle(selected.id, {
-                        background: { ...selected.style.background!, color },
+                      onUpdateStyle(display.id, {
+                        background: { ...display.style.background!, color },
                       })
                     }
                   />
                   <div className="flex-1">
                     <span className="block text-[10.5px] text-neutral-500 mb-1">
-                      Opacity · {Math.round(selected.style.background.opacity * 100)}%
+                      Opacity · {Math.round(display.style.background.opacity * 100)}%
                     </span>
                     <input
                       type="range"
                       min={0}
                       max={1}
                       step={0.05}
-                      value={selected.style.background.opacity}
+                      value={display.style.background.opacity}
                       onPointerDown={onGestureStart}
                       onChange={(e) =>
-                        onUpdateStyle(selected.id, {
-                          background: { ...selected.style.background!, opacity: Number(e.target.value) },
+                        onUpdateStyle(display.id, {
+                          background: { ...display.style.background!, opacity: Number(e.target.value) },
                         })
                       }
                       className="w-full accent-[#22E55F]"
@@ -276,34 +297,34 @@ export function CaptionInspector({
             {/* Stroke */}
             <ToggleRow
               label="Stroke"
-              on={selected.style.stroke !== null}
+              on={display.style.stroke !== null}
               onToggle={() =>
-                setStyle({ stroke: selected.style.stroke ? null : { color: '#000000', width: 5 } })
+                setStyle({ stroke: display.style.stroke ? null : { color: '#000000', width: 5 } })
               }
             >
-              {selected.style.stroke && (
+              {display.style.stroke && (
                 <div className="mt-2 flex items-center gap-3">
                   <ColorSwatch
-                    value={selected.style.stroke.color}
+                    value={display.style.stroke.color}
                     onGestureStart={onGestureStart}
                     onChange={(color) =>
-                      onUpdateStyle(selected.id, { stroke: { ...selected.style.stroke!, color } })
+                      onUpdateStyle(display.id, { stroke: { ...display.style.stroke!, color } })
                     }
                   />
                   <div className="flex-1">
                     <span className="block text-[10.5px] text-neutral-500 mb-1">
-                      Width · {selected.style.stroke.width}
+                      Width · {display.style.stroke.width}
                     </span>
                     <input
                       type="range"
                       min={1}
                       max={12}
                       step={1}
-                      value={selected.style.stroke.width}
+                      value={display.style.stroke.width}
                       onPointerDown={onGestureStart}
                       onChange={(e) =>
-                        onUpdateStyle(selected.id, {
-                          stroke: { ...selected.style.stroke!, width: Number(e.target.value) },
+                        onUpdateStyle(display.id, {
+                          stroke: { ...display.style.stroke!, width: Number(e.target.value) },
                         })
                       }
                       className="w-full accent-[#22E55F]"
@@ -320,7 +341,7 @@ export function CaptionInspector({
                 {POS_Y.map((y) =>
                   POS_X.map((x) => {
                     const active =
-                      Math.abs(selected.x - x) < 0.02 && Math.abs(selected.y - y) < 0.02
+                      Math.abs(display.x - x) < 0.02 && Math.abs(display.y - y) < 0.02
                     return (
                       <button
                         key={`${x}-${y}`}
@@ -342,13 +363,12 @@ export function CaptionInspector({
 
             <button
               type="button"
-              onClick={() => onDelete(selected.id)}
+              onClick={() => onDelete(display.id)}
               className="w-full inline-flex items-center justify-center gap-1.5 h-9 text-[12.5px] text-red-300/90 hover:text-red-300 bg-white/[0.03] hover:bg-red-500/10 ring-1 ring-white/[0.06] hover:ring-red-500/25 rounded-[7px] transition-colors"
             >
               <Trash2 size={14} /> Delete caption
             </button>
-          </div>
-        )}
+        </fieldset>
       </div>
     </div>
   )
@@ -416,11 +436,13 @@ function ToggleRow({
       >
         <span className="text-[11px] font-medium text-neutral-400">{label}</span>
         <span
-          className={`relative w-8 h-[18px] rounded-full transition-colors ${on ? 'bg-[#22E55F]' : 'bg-white/[0.12]'}`}
+          className={`relative shrink-0 w-9 h-5 rounded-full transition-colors ${on ? 'bg-[#22E55F]' : 'bg-white/[0.15]'}`}
         >
+          {/* Knob is anchored at left-0.5 and slides exactly 16px: 2px inset
+              at both ends of the 36px track — it can never overhang. */}
           <span
-            className={`absolute top-0.5 w-3.5 h-3.5 rounded-full bg-white transition-transform ${
-              on ? 'translate-x-4' : 'translate-x-0.5'
+            className={`absolute left-0.5 top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+              on ? 'translate-x-4' : ''
             }`}
           />
         </span>

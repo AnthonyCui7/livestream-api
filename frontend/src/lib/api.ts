@@ -200,6 +200,15 @@ export async function deleteProject(id: string): Promise<void> {
   await apiFetch(`/api/projects/${id}`, { method: 'DELETE' })
 }
 
+/** PATCH /api/projects/:id — rename a project the caller owns. */
+export async function renameProject(id: string, name: string): Promise<Project> {
+  const res = await apiFetch(`/api/projects/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  })
+  return rowToProject((await res.json()) as ProjectRow)
+}
+
 // ── clips ────────────────────────────────────────────────────────────────────
 
 /** PATCH /api/clips/:id — persist reviewer edits (trim/captions/title). Clips

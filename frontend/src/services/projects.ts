@@ -20,7 +20,7 @@ import {
 } from '../lib/api'
 import { getClipEdits, putClipEdits } from '../lib/clipEdits'
 
-export { createProject, cancelProject, deleteProject } from '../lib/api'
+export { createProject, cancelProject, deleteProject, renameProject } from '../lib/api'
 
 // DEMO: which platforms a clip was "posted" to — in-memory for the session
 // (resets on reload). Real social posting needs OAuth + a router endpoint.
@@ -166,7 +166,16 @@ export async function postClip(
  * subscriptions so the grid reflects the edit immediately.
  */
 export async function saveClipEdits(clipId: string, edits: ClipEdits): Promise<void> {
-  await patchClipEdits(clipId, edits)
+  try {
+    await patchClipEdits(clipId, edits)
+  } catch (err) {
+    // Demo-project clips are unowned, so the router 404s any write to them.
+    // Keep the edit browser-local in that case — the grid/player/editor all
+    // read the localStorage fallback — instead of failing the save. Real
+    // errors on owned clips still throw.
+    const notFound = err instanceof Error && /not found/i.test(err.message)
+    if (!notFound) throw err
+  }
   putClipEdits(clipId, edits)
   activeSubs.forEach((refresh) => refresh())
 }

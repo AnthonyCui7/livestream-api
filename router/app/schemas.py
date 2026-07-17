@@ -50,6 +50,12 @@ class ProjectCreateRequest(BaseModel):
     source_type: ProjectSourceType
 
 
+class ProjectUpdateRequest(BaseModel):
+    """PATCH /api/projects/:id — currently only renaming."""
+
+    name: str = Field(min_length=1, max_length=120)
+
+
 class SocialPlatform(str, Enum):
     """Platforms a clip can be posted to (mirrors the frontend + Zernio slugs)."""
 

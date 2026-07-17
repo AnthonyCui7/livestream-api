@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import type { Clip } from '../../types'
 import { CAPTION_REFERENCE_WIDTH } from '../../lib/captions'
+import { getCropPref } from '../../lib/cropPref'
 import { CaptionOverlayLayer } from './editor/CaptionOverlayLayer'
 
 /**
@@ -18,6 +19,9 @@ export function ClipPlayerModal({ clip, onClose }: { clip: Clip; onClose: () => 
   const captions = clip.edits?.captions ?? []
   const trimStart = clip.edits?.trimStart ?? 0
   const trimEnd = clip.edits?.trimEnd
+  // Local reframe preference (the card's frontend-only toggle) wins over the
+  // server-saved edit; both default to the full 16:9 frame.
+  const crop = getCropPref(clip.id) ?? clip.edits?.crop ?? null
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -46,7 +50,11 @@ export function ClipPlayerModal({ clip, onClose }: { clip: Clip; onClose: () => 
       onClick={onClose}
     >
       <div
-        className="bg-[#171717] ring-1 ring-white/[0.08] rounded-[12px] w-full max-w-sm overflow-hidden"
+        // Size the dialog to the frame: landscape clips get real width,
+        // vertical clips stay a tall column (height is the limit there).
+        className={`bg-[#171717] ring-1 ring-white/[0.08] rounded-[12px] w-full overflow-hidden ${
+          crop === 'center' ? 'max-w-md' : 'max-w-3xl'
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/[0.06]">
@@ -60,15 +68,18 @@ export function ClipPlayerModal({ clip, onClose }: { clip: Clip; onClose: () => 
           </button>
         </div>
 
-        <div ref={boxRef} className="relative w-full aspect-[9/16] max-h-[78vh] overflow-hidden bg-black">
+        <div
+          ref={boxRef}
+          className={`relative w-full max-h-[78vh] overflow-hidden bg-black ${
+            crop === 'center' ? 'aspect-[9/16]' : 'aspect-video'
+          }`}
+        >
           <video
             src={clip.videoUrl}
             controls
             autoPlay
             playsInline
-            className={`absolute inset-0 w-full h-full bg-black ${
-              clip.edits?.crop === 'center' ? 'object-cover' : 'object-contain'
-            }`}
+            className="absolute inset-0 w-full h-full bg-black object-cover"
             onLoadedMetadata={(e) => {
               if (trimStart > 0) e.currentTarget.currentTime = trimStart
             }}

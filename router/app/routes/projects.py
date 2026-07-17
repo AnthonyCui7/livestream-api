@@ -22,7 +22,12 @@ from botocore.exceptions import ClientError
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.auth import AuthUser, get_current_user
-from app.schemas import TERMINAL_STATUSES, ProjectCreateRequest, ProjectStatus
+from app.schemas import (
+    TERMINAL_STATUSES,
+    ProjectCreateRequest,
+    ProjectStatus,
+    ProjectUpdateRequest,
+)
 from app.supabase_client import get_supabase
 from app.workers import provisioner
 
@@ -248,6 +253,30 @@ def cancel_project(
         .data
     )
     return rows[0] if rows else row
+
+
+@router.patch("/{project_id}")
+def update_project(
+    project_id: UUID,
+    body: ProjectUpdateRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict:
+    """Rename a project the caller owns. Returns the updated row."""
+    supabase = get_supabase()
+    row = _get_owned_project(supabase, project_id, user)
+
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="Project name cannot be empty.")
+
+    rows = (
+        supabase.table("projects")
+        .update({"name": name})
+        .eq("id", str(project_id))
+        .execute()
+        .data
+    )
+    return rows[0] if rows else {**row, "name": name}
 
 
 @router.delete("/{project_id}", status_code=204)

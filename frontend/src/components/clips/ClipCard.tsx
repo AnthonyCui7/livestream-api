@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Crop, Flame, Play, Scissors } from 'lucide-react'
-import type { Clip, ClipEdits, SocialPlatform } from '../../types'
+import type { Clip, SocialPlatform } from '../../types'
 import { formatDuration, viralityScore, viralityTone } from '../../lib/format'
 import { colorFor } from '../../lib/placeholder'
-import { showToast } from '../../lib/toast'
-import { postClip, saveClipEdits } from '../../services/projects'
+import { getCropPref, setCropPref } from '../../lib/cropPref'
+import { postClip } from '../../services/projects'
 import { PLATFORMS } from './platformIcons'
 import { ClipPlayerModal } from './ClipPlayerModal'
 import { ClipThumbnail } from './ClipThumbnail'
@@ -35,44 +35,42 @@ export function ClipCard({ clip }: { clip: Clip }) {
   const posted = new Set(clip.postedPlatforms ?? [])
   const playable = clip.status === 'rendered' && !!clip.videoUrl
 
-  // Center-crop toggle — optimistic override so the tile flips instantly
-  // while the save round-trips; the refreshed clip prop takes over after.
-  const [cropOverride, setCropOverride] = useState<'center' | null | undefined>(undefined)
-  const [cropSaving, setCropSaving] = useState(false)
-  const crop = cropOverride !== undefined ? cropOverride : (clip.edits?.crop ?? null)
+  // Reframe toggle — frontend-only (localStorage per clip). No router write:
+  // demo clips are unowned so a PATCH would 404, and a shared demo shouldn't
+  // be reshaped for everyone by one viewer. Server-saved edits.crop (from the
+  // editor, owned clips) is the default until the user toggles here.
+  const [localCrop, setLocalCrop] = useState<'center' | null | undefined>(() =>
+    getCropPref(clip.id),
+  )
+  const crop = localCrop !== undefined ? localCrop : (clip.edits?.crop ?? null)
 
-  const toggleCrop = async () => {
-    if (cropSaving) return
+  const toggleCrop = () => {
     const next = crop === 'center' ? null : ('center' as const)
-    setCropOverride(next)
-    setCropSaving(true)
-    try {
-      const base = clip.edits
-      const edits: ClipEdits = {
-        title: base?.title,
-        trimStart: base?.trimStart,
-        trimEnd: base?.trimEnd,
-        captions: base?.captions ?? [],
-        crop: next ?? undefined,
-        updatedAt: new Date().toISOString(),
-      }
-      await saveClipEdits(clip.id, edits)
-    } catch (err) {
-      setCropOverride(undefined)
-      showToast(err instanceof Error ? err.message : 'Failed to save the crop')
-    } finally {
-      setCropSaving(false)
-    }
+    setLocalCrop(next)
+    setCropPref(clip.id, next)
   }
 
   return (
     <div className="group relative flex flex-col">
       <div
-        className="relative aspect-[9/16] rounded-[8px] overflow-hidden ring-1 ring-white/[0.06]"
+        // Fixed 16:9 tile — reframing never changes the box. 9:16 renders as
+        // a centered vertical column (center-cropped) with black pillars.
+        className={`relative aspect-video rounded-[8px] overflow-hidden ring-1 ring-white/[0.06] ${
+          crop === 'center' ? 'bg-black' : ''
+        }`}
         // Always painted — the under-layer if a thumbnail 404s or loads slowly.
-        style={{ backgroundColor: colorFor(clip.id) }}
+        style={crop === 'center' ? undefined : { backgroundColor: colorFor(clip.id) }}
       >
-        <ClipThumbnail clip={clip} crop={crop} />
+        {crop === 'center' ? (
+          <div
+            className="absolute inset-y-0 left-1/2 -translate-x-1/2 aspect-[9/16] overflow-hidden"
+            style={{ backgroundColor: colorFor(clip.id) }}
+          >
+            <ClipThumbnail clip={clip} />
+          </div>
+        ) : (
+          <ClipThumbnail clip={clip} />
+        )}
 
         {/* Virality score — the headline metric. */}
         <div
@@ -162,10 +160,9 @@ export function ClipCard({ clip }: { clip: Clip }) {
           {playable && (
             <button
               type="button"
-              onClick={() => void toggleCrop()}
-              disabled={cropSaving}
-              title={crop === 'center' ? 'Center crop on — show full frame' : 'Center crop to 9:16'}
-              aria-label="Toggle center crop"
+              onClick={toggleCrop}
+              title={crop === 'center' ? 'Reframe to 16:9 (full frame)' : 'Reframe to 9:16 (center crop)'}
+              aria-label="Reframe between 16:9 and 9:16"
               aria-pressed={crop === 'center'}
               className={`ml-auto grid place-items-center w-7 h-7 rounded-[6px] ring-1 transition-colors disabled:opacity-50 ${
                 crop === 'center'

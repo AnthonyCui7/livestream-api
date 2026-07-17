@@ -556,3 +556,28 @@ def test_delete_other_users_project_is_404(client, fake_supabase, terminate_call
     assert resp.status_code == 404
     assert terminate_calls == []
     assert row["id"] in fake_supabase.rows
+
+
+# ── PATCH /api/projects/:id (rename) ─────────────────────────────────
+
+
+def test_rename_project(client, fake_supabase):
+    row = _seed(fake_supabase)
+    resp = client.patch(f"/api/projects/{row['id']}", json={"name": "  Fresh name  "})
+    assert resp.status_code == 200
+    assert resp.json()["name"] == "Fresh name"
+    assert fake_supabase.rows[row["id"]]["name"] == "Fresh name"
+
+
+def test_rename_whitespace_name_is_422(client, fake_supabase):
+    row = _seed(fake_supabase)
+    resp = client.patch(f"/api/projects/{row['id']}", json={"name": "   "})
+    assert resp.status_code == 422
+    assert fake_supabase.rows[row["id"]]["name"] != ""
+
+
+def test_rename_other_users_project_is_404(client, fake_supabase):
+    row = _seed(fake_supabase, user_id=OTHER_USER_ID)
+    resp = client.patch(f"/api/projects/{row['id']}", json={"name": "Mine now"})
+    assert resp.status_code == 404
+    assert fake_supabase.rows[row["id"]]["name"] != "Mine now"

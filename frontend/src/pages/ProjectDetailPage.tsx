@@ -216,7 +216,7 @@ export default function ProjectDetailPage() {
               : 'No clips were found.'}
         </div>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3.5">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-4">
           {sortedClips.map((clip) => (
             <ClipCard key={clip.id} clip={clip} />
           ))}
@@ -278,7 +278,7 @@ function DetailSkeleton() {
       <Skeleton className="h-[14px] w-20 mb-5" />
       <Skeleton className="h-[24px] w-64 mb-2" />
       <Skeleton className="h-[13px] w-40 mb-8" />
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3.5">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-4">
         {Array.from({ length: 8 }, (_, i) => (
           <Skeleton key={i} className="aspect-[9/16] rounded-[8px]" />
         ))}

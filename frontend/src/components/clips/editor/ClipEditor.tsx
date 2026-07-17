@@ -232,7 +232,12 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
     setCaptions((cs) => [...cs, cap])
     setSelectedId(cap.id)
     setDirty(true)
-  }, [pushSnapshot, currentTime, duration])
+    // The overlay only paints captions whose window contains the playhead —
+    // move into the new caption so it's visible the moment it's created.
+    if (currentTime < cap.startSeconds || currentTime >= cap.endSeconds) {
+      seek(Math.min(cap.startSeconds + 0.05, cap.endSeconds - 0.01))
+    }
+  }, [pushSnapshot, currentTime, duration, seek])
 
   const deleteCaption = useCallback(
     (id: string) => {
@@ -257,8 +262,9 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
   )
 
   // ── save ──────────────────────────────────────────────────────────────────
-  const save = useCallback(async () => {
-    if (saving) return
+  /** Returns true when the save landed (drives "Save & quit"). */
+  const save = useCallback(async (): Promise<boolean> => {
+    if (saving) return false
     setSaving(true)
     const t = trimRef.current
     const edits: ClipEdits = {
@@ -275,17 +281,30 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
       showToast('Clip saved')
+      return true
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to save the clip')
+      return false
     } finally {
       setSaving(false)
     }
   }, [clip.id, duration, saving])
 
+  // Custom in-app discard dialog instead of the browser's native confirm.
+  const [confirmingClose, setConfirmingClose] = useState(false)
+
   const requestClose = useCallback(() => {
-    if (dirty && !window.confirm('Discard unsaved edits to this clip?')) return
+    if (dirty) {
+      setConfirmingClose(true)
+      return
+    }
     onClose()
   }, [dirty, onClose])
+
+  const saveAndClose = useCallback(async () => {
+    if (await save()) onClose()
+    else setConfirmingClose(false) // save failed — stay in the editor
+  }, [save, onClose])
 
   useEditorKeyboard({
     onTogglePlay: togglePlay,
@@ -297,14 +316,17 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
   })
 
   // Escape closes (with a discard guard). Kept separate from the shortcut hook
-  // so it works regardless of focus.
+  // so it works regardless of focus. When the discard dialog is up, Escape
+  // dismisses it back into the editor instead.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') requestClose()
+      if (e.key !== 'Escape') return
+      if (confirmingClose) setConfirmingClose(false)
+      else requestClose()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [requestClose])
+  }, [requestClose, confirmingClose])
 
   const trimmedLength = useMemo(() => Math.max(0, trim.end - trim.start), [trim])
   const bgColor = colorFor(clip.id)
@@ -333,14 +355,14 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
             type="button"
             onClick={toggleCrop}
             aria-pressed={crop === 'center'}
-            title={crop === 'center' ? 'Center crop on — show full frame' : 'Center crop to 9:16'}
+            title={crop === 'center' ? 'Reframe to 16:9 (full frame)' : 'Reframe to 9:16 (center crop)'}
             className={`inline-flex items-center gap-1.5 h-8 px-2.5 text-[12px] font-medium rounded-[7px] transition-colors ${
               crop === 'center'
                 ? 'bg-[#22E55F]/15 text-[#22E55F] ring-1 ring-[#22E55F]/30'
                 : 'text-neutral-400 hover:text-[#F5F5F3] hover:bg-white/[0.06]'
             }`}
           >
-            <Crop size={14} /> Center crop
+            <Crop size={14} /> {crop === 'center' ? '9:16' : '16:9'}
           </button>
           <div className="w-px h-5 bg-white/[0.08]" />
           <IconBtn label="Undo" onClick={undo} disabled={!canUndo}>
@@ -456,6 +478,48 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
           />
         </aside>
       </div>
+
+      {/* Discard-confirm dialog — replaces the browser's native confirm. */}
+      {confirmingClose && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/75 flex items-center justify-center p-4"
+          onClick={() => setConfirmingClose(false)}
+        >
+          <div
+            className="bg-[#171717] ring-1 ring-white/[0.08] rounded-[12px] w-full max-w-sm p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-[#F5F5F3] text-[15px] font-semibold">Unsaved edits</h2>
+            <p className="mt-1.5 text-[12.5px] text-neutral-400">
+              You have edits that aren’t saved yet. Save them, or quit and lose them?
+            </p>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmingClose(false)}
+                className="h-9 px-3.5 text-[13px] text-neutral-300 hover:text-white rounded-[7px] hover:bg-white/[0.06] transition-colors"
+              >
+                Keep editing
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="h-9 px-3.5 text-[13px] font-medium text-red-300 hover:text-red-200 bg-white/[0.03] hover:bg-red-500/10 ring-1 ring-white/[0.08] hover:ring-red-500/25 rounded-[7px] transition-colors"
+              >
+                Quit without saving
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveAndClose()}
+                disabled={saving}
+                className="h-9 px-3.5 text-[13px] font-semibold text-[#0A0A0A] bg-[#22E55F] hover:bg-[#35f16d] rounded-[7px] transition-colors disabled:opacity-50"
+              >
+                {saving ? 'Saving…' : 'Save & quit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

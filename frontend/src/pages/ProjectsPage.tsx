@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Plus, Sparkles } from 'lucide-react'
 import type { Project } from '../types'
-import { deleteProject, listProjects } from '../services/projects'
+import { deleteProject, listProjects, renameProject } from '../services/projects'
 import { ProjectCard } from '../components/projects/ProjectCard'
 import { NewProjectModal } from '../components/projects/NewProjectModal'
 import { Skeleton } from '../components/ui/Skeleton'
@@ -44,6 +44,21 @@ export default function ProjectsPage() {
     [refresh],
   )
 
+  const handleRename = useCallback(
+    async (project: Project) => {
+      const name = prompt('Rename project', project.name)?.trim()
+      if (!name || name === project.name) return
+      try {
+        await renameProject(project.id, name)
+        showToast('Project renamed')
+        void refresh()
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : 'Failed to rename the project')
+      }
+    },
+    [refresh],
+  )
+
   const isEmpty = useMemo(() => !loading && projects.length === 0, [loading, projects])
 
   return (
@@ -66,7 +81,7 @@ export default function ProjectsPage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3">
           {Array.from({ length: 6 }, (_, i) => (
             <div key={i} className="rounded-[10px] overflow-hidden ring-1 ring-white/[0.05]">
               <Skeleton className="aspect-video rounded-none" />
@@ -80,9 +95,14 @@ export default function ProjectsPage() {
       ) : isEmpty ? (
         <EmptyState onCreate={() => setCreating(true)} />
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3">
           {projects.map((p) => (
-            <ProjectCard key={p.id} project={p} onDelete={() => void handleDelete(p)} />
+            <ProjectCard
+              key={p.id}
+              project={p}
+              onDelete={() => void handleDelete(p)}
+              onRename={() => void handleRename(p)}
+            />
           ))}
         </div>
       )}

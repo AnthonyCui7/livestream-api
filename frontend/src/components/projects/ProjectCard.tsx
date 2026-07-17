@@ -9,9 +9,10 @@ import { StatusPill } from './StatusPill'
 interface Props {
   project: Project
   onDelete: () => void
+  onRename: () => void
 }
 
-export function ProjectCard({ project, onDelete }: Props) {
+export function ProjectCard({ project, onDelete, onRename }: Props) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -69,6 +70,17 @@ export function ProjectCard({ project, onDelete }: Props) {
         </button>
         {menuOpen && (
           <div className="absolute right-0 top-full mt-1 bg-[#171717] ring-1 ring-white/[0.08] rounded-[6px] shadow-lg overflow-hidden min-w-[130px] z-10">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                setMenuOpen(false)
+                onRename()
+              }}
+              className="w-full text-left px-3 py-2 text-[12px] text-neutral-200 hover:bg-white/[0.04] transition-colors"
+            >
+              Rename project
+            </button>
             <button
               type="button"
               onClick={(e) => {

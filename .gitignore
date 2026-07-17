@@ -25,3 +25,9 @@ frontend/.vite/
 
 # One-off uploaded source logo; use frontend/public/clipfarm-logo.png instead.
 0f94cfd5-*.png
+
+# Python (router)
+__pycache__/
+.pytest_cache/
+.venv/
+.ruff_cache/

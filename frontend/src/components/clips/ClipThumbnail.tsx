@@ -13,13 +13,11 @@ import type { Clip } from '../../types'
  * Renders absolutely-positioned layers — the parent supplies the aspect
  * ratio, rounding, background color and any overlays.
  */
-export function ClipThumbnail({ clip, crop }: { clip: Clip; crop?: 'center' | null }) {
+export function ClipThumbnail({ clip }: { clip: Clip }) {
   const [posterFailed, setPosterFailed] = useState(false)
-  // Center-crop fills the vertical tile (cropping the 16:9 sides); otherwise
-  // the full frame letterboxes inside it. `crop` prop overrides the saved edit
-  // so toggles can preview optimistically.
-  const effectiveCrop = crop !== undefined ? crop : (clip.edits?.crop ?? null)
-  const fit = effectiveCrop === 'center' ? 'object-cover' : 'object-contain'
+  // Media always covers the tile — the PARENT expresses the reframe by
+  // switching the tile's aspect ratio (16:9 shows the full frame, 9:16
+  // center-crops), so cover is correct in both.
 
   if (clip.posterUrl && !posterFailed) {
     return (
@@ -28,13 +26,13 @@ export function ClipThumbnail({ clip, crop }: { clip: Clip; crop?: 'center' | nu
         alt=""
         loading="lazy"
         onError={() => setPosterFailed(true)}
-        className={`absolute inset-0 w-full h-full ${fit}`}
+        className="absolute inset-0 w-full h-full object-cover"
       />
     )
   }
 
   if (clip.videoUrl) {
-    return <LazyVideoFrame videoUrl={clip.videoUrl} fit={fit} />
+    return <LazyVideoFrame videoUrl={clip.videoUrl} />
   }
 
   // Nothing renderable yet (clip still detecting/rendering) — a quiet icon
@@ -52,7 +50,7 @@ export function ClipThumbnail({ clip, crop }: { clip: Clip; crop?: 'center' | nu
  * even preload="metadata" costs a ranged fetch per tile — so offscreen tiles
  * stay as the parent's solid color until scrolled close.
  */
-function LazyVideoFrame({ videoUrl, fit }: { videoUrl: string; fit: string }) {
+function LazyVideoFrame({ videoUrl }: { videoUrl: string }) {
   const tileRef = useRef<HTMLDivElement>(null)
   const [nearViewport, setNearViewport] = useState(false)
 
@@ -87,7 +85,7 @@ function LazyVideoFrame({ videoUrl, fit }: { videoUrl: string; fit: string }) {
           muted
           playsInline
           preload="metadata"
-          className={`absolute inset-0 w-full h-full ${fit} pointer-events-none`}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
         />
       )}
     </div>

@@ -58,7 +58,12 @@ def _call(method: str, path: str, **kwargs: Any) -> Any:
 
 
 def get_or_create_profile(supabase, *, user_id: str, email: str | None) -> str:
-    """Return the user's Zernio profile id, creating and caching it on first use."""
+    """Return the user's Zernio profile id, creating and caching it on first use.
+
+    Zernio profile names are unique per API key, and a profile may already
+    exist under this name without a social_profiles row (created via the
+    Zernio dashboard, or the cache row was lost) — so adopt an existing
+    same-named profile before creating a new one."""
     rows = (
         supabase.table("social_profiles")
         .select("zernio_profile_id")
@@ -69,18 +74,30 @@ def get_or_create_profile(supabase, *, user_id: str, email: str | None) -> str:
     if rows:
         return rows[0]["zernio_profile_id"]
 
-    created = _call(
-        "POST",
-        "/profiles",
-        json={"name": email or user_id, "description": "clipfarm user profile"},
-    )
-    profile_id = str(created.get("_id") or created.get("id") or "")
+    name = email or user_id
+    profile_id = _find_profile_id_by_name(name)
+    if profile_id is None:
+        created = _call(
+            "POST",
+            "/profiles",
+            json={"name": name, "description": "clipfarm user profile"},
+        )
+        profile_id = str(created.get("_id") or created.get("id") or "")
     if not profile_id:
         raise ZernioError("Social posting service returned no profile id.")
     supabase.table("social_profiles").insert(
         {"user_id": user_id, "zernio_profile_id": profile_id}
     ).execute()
     return profile_id
+
+
+def _find_profile_id_by_name(name: str) -> str | None:
+    data = _call("GET", "/profiles")
+    raw = data if isinstance(data, list) else data.get("profiles", [])
+    for profile in raw:
+        if isinstance(profile, dict) and profile.get("name") == name:
+            return str(profile.get("_id") or profile.get("id") or "") or None
+    return None
 
 
 def connect_url(profile_id: str, platform: str) -> str:

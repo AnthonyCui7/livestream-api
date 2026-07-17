@@ -68,7 +68,11 @@ export function EditorPreview({
     <div className="flex-1 min-h-0 grid place-items-center p-4" onPointerDown={onBackgroundClick}>
       <div
         ref={boxRef}
-        className="relative h-full max-h-full max-w-full aspect-[9/16] rounded-[10px] overflow-hidden ring-1 ring-white/[0.08] shadow-2xl"
+        // Reframe: the preview frame itself flips between 9:16 (center-crop)
+        // and the source's 16:9 (full picture).
+        className={`relative max-h-full max-w-full rounded-[10px] overflow-hidden ring-1 ring-white/[0.08] shadow-2xl ${
+          crop ? 'h-full aspect-[9/16]' : 'w-full aspect-video'
+        }`}
         style={{ backgroundColor: bgColor }}
         // Clicks inside the player shouldn't bubble to the deselect handler,
         // except the video surface itself (handled below) toggles playback.
@@ -78,9 +82,7 @@ export function EditorPreview({
           ref={videoRef}
           src={src}
           playsInline
-          className={`absolute inset-0 w-full h-full bg-black ${
-            crop ? 'object-cover' : 'object-contain'
-          }`}
+          className="absolute inset-0 w-full h-full bg-black object-cover"
           onLoadedMetadata={(e) => onLoadedMetadata(e.currentTarget.duration)}
           onClick={onTogglePlay}
         />

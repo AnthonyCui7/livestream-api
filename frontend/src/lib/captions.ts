@@ -75,8 +75,12 @@ export function createCaption(
   duration: number,
   preset: CaptionPreset = 'pill'
 ): Caption {
-  const start = Math.max(0, Math.min(atSeconds, Math.max(0, duration - CAPTION_MIN_DURATION)))
-  const end = Math.min(duration, start + 2)
+  // Place a real window even when the playhead sits at the clip's end (where
+  // it lands after preview playback): back the start up so the caption gets
+  // its full default length instead of a sub-second sliver.
+  const DEFAULT_LENGTH = 2.5
+  const start = Math.max(0, Math.min(atSeconds, Math.max(0, duration - DEFAULT_LENGTH)))
+  const end = Math.min(duration, start + DEFAULT_LENGTH)
   return {
     id: `cap_${idSuffix()}`,
     text: 'Your caption',
