@@ -1,0 +1,39 @@
+# Router deployment on the EC2 host (/opt/clipfarm): Caddy terminates TLS for
+# api.clipfarmlive.tech and proxies to the router container, which no longer
+# publishes any host port — it is reachable only through Caddy on the compose
+# network. Deploy with deploy.sh; the .env file next to this compose file is
+# generated at deploy time from Secrets Manager and is never committed.
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and ACME account state — must persist across restarts so
+      # reissuance doesn't burn Let's Encrypt rate limits.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - router
+
+  router:
+    image: 519659320853.dkr.ecr.us-east-1.amazonaws.com/livestream-router:latest
+    container_name: router
+    restart: unless-stopped
+    env_file:
+      - .env
+    # Same CMD as the image plus proxy-header trust, so access logs carry the
+    # real client IP from Caddy's X-Forwarded-For instead of the bridge IP.
+    command:
+      [
+        "uv", "run", "--no-dev", "uvicorn", "app.main:app",
+        "--host", "0.0.0.0", "--port", "8000",
+        "--proxy-headers", "--forwarded-allow-ips", "*",
+      ]
+
+volumes:
+  caddy_data:
+  caddy_config:

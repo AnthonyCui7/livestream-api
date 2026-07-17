@@ -96,7 +96,6 @@ def _seed(fake: FakeSupabase, **over) -> dict:
         "status": "ingesting",
         "error": None,
         "metadata": None,
-        "virality_threshold": 0,
         "instance_id": None,
     }
     row.update(over)
@@ -185,7 +184,6 @@ def test_create_project_happy_path(client, fake_supabase, launch_calls):
         json={
             "source_url": "https://www.twitch.tv/somechannel",
             "source_type": "livestream",
-            "virality_threshold": 0.42,
         },
     )
 
@@ -196,7 +194,6 @@ def test_create_project_happy_path(client, fake_supabase, launch_calls):
     assert row["source_type"] == "livestream"
     assert row["source_url"] == "https://www.twitch.tv/somechannel"
     assert row["status"] == "created"
-    assert row["virality_threshold"] == 0.42
     assert row["instance_id"] == "i-0123456789abcdef0"
 
     # The worker was launched with exactly the row's parameters.
@@ -205,7 +202,6 @@ def test_create_project_happy_path(client, fake_supabase, launch_calls):
             "project_id": row["id"],
             "source_url": "https://www.twitch.tv/somechannel",
             "source_type": "livestream",
-            "virality_threshold": 0.42,
         }
     ]
 
@@ -213,7 +209,7 @@ def test_create_project_happy_path(client, fake_supabase, launch_calls):
     assert fake_supabase.rows[row["id"]]["instance_id"] == "i-0123456789abcdef0"
 
 
-def test_create_project_keeps_explicit_name_and_defaults_threshold(client, launch_calls):
+def test_create_project_keeps_explicit_name(client, launch_calls):
     resp = client.post(
         "/api/projects",
         json={
@@ -226,8 +222,7 @@ def test_create_project_keeps_explicit_name_and_defaults_threshold(client, launc
     assert resp.status_code == 201
     row = resp.json()
     assert row["name"] == "My VOD"
-    assert row["virality_threshold"] == 0
-    assert launch_calls[0]["virality_threshold"] == 0
+    assert launch_calls[0]["source_type"] == "video"
 
 
 def test_create_project_launch_failure_marks_row_failed_and_502(
@@ -270,18 +265,6 @@ def test_create_project_rejects_bad_urls(client, fake_supabase, launch_calls, ur
     assert resp.status_code == 422
     assert fake_supabase.rows == {}  # nothing inserted
     assert launch_calls == []  # nothing launched
-
-
-def test_create_project_rejects_out_of_range_threshold(client):
-    resp = client.post(
-        "/api/projects",
-        json={
-            "source_url": "https://twitch.tv/chan",
-            "source_type": "livestream",
-            "virality_threshold": 1.5,
-        },
-    )
-    assert resp.status_code == 422
 
 
 def test_create_project_requires_auth(fake_supabase):

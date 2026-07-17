@@ -8,9 +8,10 @@
 //   • live   — polling every 4s (no Supabase realtime)
 // Social posting is still simulated (see postClip below).
 
-import type { Clip, Project, SocialPlatform } from '../types'
+import type { Clip, ClipEdits, Project, SocialPlatform } from '../types'
 import { getSupabase } from '../lib/supabase'
-import { rowToClip, rowToProject, type ClipRow, type ProjectRow } from '../lib/api'
+import { patchClipEdits, rowToClip, rowToProject, type ClipRow, type ProjectRow } from '../lib/api'
+import { getClipEdits, putClipEdits } from '../lib/clipEdits'
 
 export { createProject, cancelProject, deleteProject } from '../lib/api'
 
@@ -19,7 +20,15 @@ export { createProject, cancelProject, deleteProject } from '../lib/api'
 const postedByClip = new Map<string, Set<SocialPlatform>>()
 
 function toClip(row: ClipRow): Clip {
-  return rowToClip(row, [...(postedByClip.get(row.id) ?? [])])
+  const base = rowToClip(row, [...(postedByClip.get(row.id) ?? [])])
+  // Merge in any reviewer edits (trim/captions/title) from the local edit store
+  // so the grid, player and editor all see the edited clip. A future router
+  // endpoint would return these fields on the row instead.
+  // Server-persisted edits (clips.edits jsonb, mapped in rowToClip) win; the
+  // localStorage cache is only a fallback for edits not yet round-tripped.
+  const edits = base.edits ?? getClipEdits(row.id)
+  if (!edits) return base
+  return { ...base, title: edits.title ?? base.title, edits }
 }
 
 export async function listProjects(): Promise<Project[]> {
@@ -49,6 +58,14 @@ export async function listClips(projectId: string): Promise<Clip[]> {
     .order('created_at')
   if (error) throw new Error(error.message)
   return ((data ?? []) as ClipRow[]).map(toClip)
+}
+
+/** A single clip by id — used by the editor route on a hard refresh, when the
+ *  clip wasn't handed over via navigation state. */
+export async function getClip(id: string): Promise<Clip | null> {
+  const { data, error } = await getSupabase().from('clips').select('*').eq('id', id).maybeSingle()
+  if (error) throw new Error(error.message)
+  return data ? toClip(data as ClipRow) : null
 }
 
 // ── live clip updates: 4s polling ──────────────────────────────────────────
@@ -101,4 +118,17 @@ export function postClip(clipId: string, platform: SocialPlatform): Promise<void
   set.add(platform)
   activeSubs.forEach((refresh) => refresh())
   return new Promise((resolve) => setTimeout(resolve, 700)) // pretend the upload takes a beat
+}
+
+/**
+ * Persist reviewer edits (trim + captions + title) for a clip. Writes through
+ * the router (PATCH /api/clips/:id → clips.edits jsonb; service_role, since RLS
+ * makes clips backend-write-only), then mirrors to the localStorage cache for
+ * instant reads before the next poll / offline resilience, and nudges active
+ * subscriptions so the grid reflects the edit immediately.
+ */
+export async function saveClipEdits(clipId: string, edits: ClipEdits): Promise<void> {
+  await patchClipEdits(clipId, edits)
+  putClipEdits(clipId, edits)
+  activeSubs.forEach((refresh) => refresh())
 }

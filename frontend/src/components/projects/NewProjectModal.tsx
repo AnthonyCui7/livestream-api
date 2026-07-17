@@ -99,9 +99,9 @@ function defaultName(url: string): string {
 }
 
 /**
- * Create-a-project sheet: source type, stream/video URL, optional name and a
- * virality threshold. Submits to the router (POST /api/projects), which
- * launches the clip worker, then navigates to the new project.
+ * Create-a-project sheet: source type, stream/video URL and an optional name.
+ * Submits to the router (POST /api/projects), which launches the clip worker,
+ * then navigates to the new project.
  */
 export function NewProjectModal({ open, onClose, onCreated }: Props) {
   const navigate = useNavigate()
@@ -109,7 +109,6 @@ export function NewProjectModal({ open, onClose, onCreated }: Props) {
   const [sourceType, setSourceType] = useState<'livestream' | 'video'>('livestream')
   const [url, setUrl] = useState('')
   const [name, setName] = useState('')
-  const [threshold, setThreshold] = useState(50) // % — sent as 0–1
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -145,7 +144,6 @@ export function NewProjectModal({ open, onClose, onCreated }: Props) {
         name: name.trim() || undefined,
         sourceUrl: trimmedUrl,
         sourceType,
-        viralityThreshold: threshold / 100,
       })
       showToast('Project created — spinning up the clip worker…')
       onCreated?.(project)
@@ -248,28 +246,6 @@ export function NewProjectModal({ open, onClose, onCreated }: Props) {
               placeholder={defaultName(trimmedUrl)}
               className="w-full px-3.5 py-2.5 bg-white/[0.04] text-white text-[13px] rounded-[7px] outline-none focus:bg-white/[0.06] focus:ring-1 focus:ring-violet-500/40 placeholder-neutral-600 transition-colors"
             />
-          </div>
-
-          {/* Virality threshold */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-neutral-400 text-[12px]">Virality threshold</label>
-              <span className="text-neutral-300 text-[12px] font-medium tabular-nums">
-                {threshold}%
-              </span>
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={5}
-              value={threshold}
-              onChange={(e) => setThreshold(Number(e.target.value))}
-              className="w-full accent-violet-500"
-            />
-            <p className="mt-1 text-[11px] text-neutral-600">
-              Only clips scoring above this are kept.
-            </p>
           </div>
 
           <button

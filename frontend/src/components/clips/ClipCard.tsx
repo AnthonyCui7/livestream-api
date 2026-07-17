@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Flame, Play } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Flame, Play, Scissors } from 'lucide-react'
 import type { Clip, SocialPlatform } from '../../types'
 import { formatDuration, viralityScore, viralityTone } from '../../lib/format'
 import { colorFor } from '../../lib/placeholder'
@@ -17,7 +18,15 @@ import { PostModal } from './PostModal'
  * falling back to the video's first frame, then a solid color (ClipThumbnail).
  */
 export function ClipCard({ clip }: { clip: Clip }) {
-  const duration = formatDuration(clip.endSeconds - clip.startSeconds)
+  const navigate = useNavigate()
+  // Reflect any saved trim in the duration shown on the tile.
+  const fullDuration = clip.endSeconds - clip.startSeconds
+  const trimmed =
+    clip.edits && (clip.edits.trimStart != null || clip.edits.trimEnd != null)
+      ? (clip.edits.trimEnd ?? fullDuration) - (clip.edits.trimStart ?? 0)
+      : fullDuration
+  const duration = formatDuration(trimmed)
+  const edited = !!clip.edits
   const score = viralityScore(clip.score)
   const tone = viralityTone(score)
   const [postingTo, setPostingTo] = useState<SocialPlatform | null>(null)
@@ -75,6 +84,14 @@ export function ClipCard({ clip }: { clip: Clip }) {
           </div>
         )}
 
+        {/* Edited marker — this clip has saved trim/caption edits. */}
+        {edited && (
+          <div className="absolute bottom-2 left-2 inline-flex items-center gap-1 h-5 px-1.5 rounded-full bg-black/55 backdrop-blur-sm ring-1 ring-white/10">
+            <Scissors size={9} className="text-violet-300" />
+            <span className="text-[9.5px] font-medium text-neutral-200 leading-none">Edited</span>
+          </div>
+        )}
+
         {/* Virality bar. */}
         <div className="absolute bottom-0 inset-x-0 h-1 bg-black/30">
           <div className="h-full" style={{ width: `${score}%`, backgroundColor: tone.bar }} />
@@ -84,7 +101,7 @@ export function ClipCard({ clip }: { clip: Clip }) {
       <div className="pt-2 px-0.5">
         <h3 className="text-neutral-200 text-[12.5px] font-medium leading-snug line-clamp-2">{clip.title}</h3>
 
-        {/* One-click social post buttons. */}
+        {/* One-click social post buttons, then the editor entry point. */}
         <div className="mt-2 flex items-center gap-1.5">
           {PLATFORMS.map(({ key, label, Icon, color }) => {
             const isPosted = posted.has(key)
@@ -109,6 +126,25 @@ export function ClipCard({ clip }: { clip: Clip }) {
               </button>
             )
           })}
+
+          {/* Edit — trim length + add captions. Only for rendered clips. */}
+          {playable && (
+            <button
+              type="button"
+              onClick={() =>
+                navigate(`/projects/${clip.projectId}/clips/${clip.id}/edit`, { state: { clip } })
+              }
+              title="Edit clip"
+              aria-label="Edit clip"
+              className={`ml-auto grid place-items-center w-7 h-7 rounded-[6px] ring-1 transition-colors ${
+                edited
+                  ? 'bg-violet-500/15 ring-violet-400/30 text-violet-200 hover:bg-violet-500/25'
+                  : 'bg-white/[0.04] ring-white/[0.06] text-neutral-400 hover:text-white hover:bg-white/[0.08]'
+              }`}
+            >
+              <Scissors size={14} />
+            </button>
+          )}
         </div>
       </div>
 

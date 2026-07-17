@@ -66,8 +66,6 @@ export interface Project {
   sourceFiles?: SourceFile[]
   status: ProjectStatus
   error?: string | null
-  /** Clips scoring below this 0–1 cutoff are not rendered (DB `virality_threshold`). */
-  viralityThreshold: number
   /** How many clips the pipeline has produced so far (derived / joined). */
   clipCount: number
   createdAt: string // ISO
@@ -97,4 +95,76 @@ export interface Clip {
   posterUrl?: string
   /** Which platforms this clip has been posted to (UI/demo state). */
   postedPlatforms?: SocialPlatform[]
+  /** Reviewer edits (trim + captions + title override) layered on top of the
+   *  rendered clip. Merged in on read from the edit store (`lib/clipEdits.ts`);
+   *  undefined = untouched. Burning these into the file is a future server
+   *  re-render — see `services/saveClipEdits`. */
+  edits?: ClipEdits
+}
+
+// ── clip editor: trim + captions ────────────────────────────────────────────
+//
+// The editor (see `components/clips/editor/`) works on the CLIP'S OWN rendered
+// video: time 0 is the start of `clip.videoUrl`, and every time below is in
+// those clip-relative seconds. Trim narrows the playable window; captions are
+// timed text overlays painted over the video. All of it is stored as edit
+// metadata (`ClipEdits`) and is forward-compatible with a router
+// `PATCH /api/clips/:id` + a server-side re-render that burns it in.
+
+/** A named caption look. Drives the default fill / stroke / background pill;
+ *  individual fields can still be overridden per caption. */
+export type CaptionPreset = 'pill' | 'outline' | 'shadow'
+
+/** Where a caption sits over the frame — one of nine anchor slots. Position is
+ *  stored as normalized center coords (`Caption.x` / `.y`); these are just the
+ *  quick-place presets the inspector offers. */
+export type CaptionAlign = 'left' | 'center' | 'right'
+
+/** Full visual style of a caption overlay. Mirrors narrative's `TextClipStyle`,
+ *  collapsed to what a simple editor needs. */
+export interface CaptionStyle {
+  preset: CaptionPreset
+  fontFamily: string
+  /** Font size in px, authored against a 1080px-wide reference frame and
+   *  scaled to the actual player width at render time. */
+  fontSize: number
+  fontWeight: number
+  /** Text fill color (hex). */
+  color: string
+  align: CaptionAlign
+  /** Outline painted behind the fill — null disables it. */
+  stroke: { color: string; width: number } | null
+  /** Rounded background pill behind the text — null disables it. */
+  background: { color: string; opacity: number } | null
+}
+
+/** One on-video caption. Visible over `[startSeconds, endSeconds)` of the clip
+ *  timeline, positioned in normalized center-anchored coords (0.5,0.5 = dead
+ *  center of the frame), independent of player size. */
+export interface Caption {
+  id: string
+  text: string
+  startSeconds: number
+  endSeconds: number
+  /** 0–1 of frame width, center-anchored. */
+  x: number
+  /** 0–1 of frame height, center-anchored. */
+  y: number
+  style: CaptionStyle
+}
+
+/** The reviewable edits layered on top of a rendered clip. Times are
+ *  clip-relative seconds. Persisted per clip id and merged into `Clip.edits`
+ *  on read; an unedited clip has no record. */
+export interface ClipEdits {
+  /** Overridden title, when the reviewer renamed the clip. */
+  title?: string
+  /** New in-point within the clip video (clip-relative seconds). Undefined =
+   *  start of the clip. */
+  trimStart?: number
+  /** New out-point within the clip video. Undefined = end of the clip. */
+  trimEnd?: number
+  captions: Caption[]
+  /** ISO timestamp of the last save. */
+  updatedAt: string
 }

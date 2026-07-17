@@ -35,7 +35,6 @@ def test_launch_worker_creates_tagged_instance():
         project_id="proj-123",
         source_url="https://www.youtube.com/watch?v=abc",
         source_type="video",
-        virality_threshold=0.5,
         settings=settings,
     )
 
@@ -60,7 +59,6 @@ def test_launch_worker_requires_ami_and_image():
             project_id="p",
             source_url="u",
             source_type="video",
-            virality_threshold=0,
             settings=Settings(_env_file=None),
         )
 
@@ -69,7 +67,6 @@ def test_launch_worker_requires_ami_and_image():
             project_id="p",
             source_url="u",
             source_type="video",
-            virality_threshold=0,
             settings=Settings(_env_file=None, worker_ami_id="ami-123"),
         )
 
@@ -81,7 +78,6 @@ def test_state_and_terminate():
         project_id="proj-9",
         source_url="u",
         source_type="video",
-        virality_threshold=0,
         settings=settings,
     )
 

@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage'
 import SignUpPage from './pages/SignUpPage'
 import ProjectsPage from './pages/ProjectsPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
+import ClipEditorPage from './pages/ClipEditorPage'
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth()
@@ -38,6 +39,16 @@ export default function App() {
                 <Layout>
                   <ProjectDetailPage />
                 </Layout>
+              </RequireAuth>
+            }
+          />
+          {/* Full-bleed clip editor — deliberately outside <Layout> (no navbar),
+              mirroring how narrative mounts its editor as a dedicated surface. */}
+          <Route
+            path="/projects/:id/clips/:clipId/edit"
+            element={
+              <RequireAuth>
+                <ClipEditorPage />
               </RequireAuth>
             }
           />

@@ -8,7 +8,7 @@ shapes and the status vocabulary.
 
 from enum import Enum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ProjectStatus(str, Enum):
@@ -47,5 +47,19 @@ class ProjectCreateRequest(BaseModel):
     name: str | None = None
     source_url: str
     source_type: ProjectSourceType
-    # Clips scoring below this are not rendered/inserted by the worker.
-    virality_threshold: float = Field(default=0, ge=0, le=1)
+
+
+class ClipEditsRequest(BaseModel):
+    """Reviewer edits for one clip (trim + captions + title), saved from the
+    in-app editor. Stored verbatim as the `clips.edits` jsonb — the field names
+    mirror the frontend `ClipEdits` (camelCase) so the blob round-trips, and
+    `extra='allow'` future-proofs the caption schema (owned by the frontend)
+    without the router needing to model every field."""
+
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
+
+    title: str | None = None
+    trim_start: float | None = Field(default=None, alias="trimStart")
+    trim_end: float | None = Field(default=None, alias="trimEnd")
+    captions: list[dict] = Field(default_factory=list)
+    updated_at: str | None = Field(default=None, alias="updatedAt")

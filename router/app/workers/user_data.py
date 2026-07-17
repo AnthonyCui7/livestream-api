@@ -33,14 +33,12 @@ def build_worker_user_data(
     project_id: str,
     source_url: str,
     source_type: str,
-    virality_threshold: float,
 ) -> str:
     # Non-secret values are safe to inline into the container env.
     env_lines = [
         f'PROJECT_ID="{project_id}"',
         f'STREAM_URL="{source_url}"',
         f'SOURCE_TYPE="{source_type}"',
-        f'VIRALITY_THRESHOLD="{virality_threshold}"',
         f'AWS_REGION="{settings.aws_region}"',
         f'S3_BUCKET="{settings.worker_s3_bucket}"',
         f'SUPABASE_URL="{settings.supabase_url}"',

@@ -175,7 +175,6 @@ def create_project(
                 "source_type": body.source_type.value,
                 "source_url": body.source_url,
                 "status": ProjectStatus.created.value,
-                "virality_threshold": body.virality_threshold,
             }
         )
         .execute()
@@ -188,7 +187,6 @@ def create_project(
             project_id=project_id,
             source_url=body.source_url,
             source_type=body.source_type.value,
-            virality_threshold=body.virality_threshold,
         )
     except Exception:
         # The full exception is logged server-side only — AWS internals must

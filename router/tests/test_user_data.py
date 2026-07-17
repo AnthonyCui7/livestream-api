@@ -21,7 +21,6 @@ def _build(**over) -> str:
         project_id="proj-abc",
         source_url="https://www.twitch.tv/somechannel",
         source_type="livestream",
-        virality_threshold=0.35,
     )
     settings_over = over.pop("settings_over", {})
     params.update(over)
@@ -36,7 +35,6 @@ def test_user_data_injects_project_params_but_never_the_secret_key():
     assert 'PROJECT_ID="proj-abc"' in script
     assert 'STREAM_URL="https://www.twitch.tv/somechannel"' in script
     assert 'SOURCE_TYPE="livestream"' in script
-    assert 'VIRALITY_THRESHOLD="0.35"' in script
     assert 'AWS_REGION="us-west-2"' in script
     assert 'S3_BUCKET="livestream-media-519659320853"' in script
     assert 'SUPABASE_URL="https://proj.supabase.co"' in script  # public, not a secret

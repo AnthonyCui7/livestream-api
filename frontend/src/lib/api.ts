@@ -7,7 +7,7 @@
 // in `Authorization: Bearer …`; the router validates it and scopes the write
 // to that user.
 
-import type { Clip, ClipMetadata, Project, SocialPlatform, StreamPlatform } from '../types'
+import type { Clip, ClipEdits, ClipMetadata, Project, SocialPlatform, StreamPlatform } from '../types'
 import { getSupabase } from './supabase'
 
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
@@ -22,7 +22,6 @@ export interface ProjectRow {
   source_url: string
   status: Project['status']
   error: string | null
-  virality_threshold: number | string | null
   instance_id?: string | null
   metadata?: Record<string, unknown>
   created_at: string
@@ -42,6 +41,7 @@ export interface ClipRow {
   video_url: string | null
   status: Clip['status']
   metadata?: ClipMetadata | null
+  edits?: ClipEdits | null
   created_at: string
 }
 
@@ -76,7 +76,6 @@ export function rowToProject(row: ProjectRow): Project {
     streamPlatform: row.source_type === 'upload' ? undefined : platformFor(row.source_url),
     status: row.status,
     error: row.error,
-    viralityThreshold: clamp01(Number(row.virality_threshold ?? 0)),
     clipCount: row.clips?.[0]?.count ?? 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -87,6 +86,12 @@ export function rowToClip(row: ClipRow, postedPlatforms: SocialPlatform[] = []):
   // metadata is untrusted jsonb — only a real non-empty string becomes the
   // poster. Existing clips predate thumbnails, so this is usually undefined.
   const thumbnail = row.metadata?.thumbnail_url
+  // clips.edits jsonb defaults to {} — treat an empty object as "no edits".
+  const rawEdits = row.edits
+  const edits =
+    rawEdits && typeof rawEdits === 'object' && Object.keys(rawEdits).length > 0
+      ? (rawEdits as ClipEdits)
+      : undefined
   return {
     id: row.id,
     projectId: row.project_id,
@@ -100,6 +105,7 @@ export function rowToClip(row: ClipRow, postedPlatforms: SocialPlatform[] = []):
     videoUrl: row.video_url,
     createdAt: row.created_at,
     metadata: row.metadata ?? undefined,
+    edits,
     posterUrl: typeof thumbnail === 'string' && thumbnail !== '' ? thumbnail : undefined,
     postedPlatforms,
   }
@@ -153,8 +159,6 @@ export interface CreateProjectInput {
   name?: string
   sourceUrl: string
   sourceType: 'livestream' | 'video'
-  /** 0–1 — clips scoring below this are not rendered. */
-  viralityThreshold: number
 }
 
 /** POST /api/projects — insert the row and launch the clip worker. */
@@ -165,7 +169,6 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
       ...(input.name ? { name: input.name } : {}),
       source_url: input.sourceUrl,
       source_type: input.sourceType,
-      virality_threshold: input.viralityThreshold,
     }),
   })
   return rowToProject((await res.json()) as ProjectRow)
@@ -187,4 +190,16 @@ export async function cancelProject(id: string, force = false): Promise<Project>
  *  (DB triggers enqueue the media cleanup). */
 export async function deleteProject(id: string): Promise<void> {
   await apiFetch(`/api/projects/${id}`, { method: 'DELETE' })
+}
+
+// ── clips ────────────────────────────────────────────────────────────────────
+
+/** PATCH /api/clips/:id — persist reviewer edits (trim/captions/title). Clips
+ *  are service_role-only for writes (RLS), so this goes through the router; the
+ *  request body is the `ClipEdits` shape verbatim. */
+export async function patchClipEdits(clipId: string, edits: ClipEdits): Promise<void> {
+  await apiFetch(`/api/clips/${clipId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(edits),
+  })
 }

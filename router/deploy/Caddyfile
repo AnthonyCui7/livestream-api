@@ -1,0 +1,13 @@
+# TLS termination for the router API. Caddy obtains and renews the
+# Let's Encrypt certificate automatically (HTTP-01 on port 80, which is why
+# port 80 must stay open to the world alongside 443) and redirects all HTTP
+# to HTTPS. DNS: api.clipfarmlive.tech is an A record to the router EIP,
+# managed in the Vercel dashboard (the clipfarmlive.tech zone lives there).
+{
+	email all.oltean.us@gmail.com
+}
+
+api.clipfarmlive.tech {
+	encode gzip
+	reverse_proxy router:8000
+}

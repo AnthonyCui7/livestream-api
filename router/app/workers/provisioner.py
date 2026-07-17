@@ -22,7 +22,6 @@ def launch_worker(
     project_id: str,
     source_url: str,
     source_type: str,
-    virality_threshold: float,
     settings: Settings | None = None,
 ) -> str:
     """Launch an EC2 worker for a project. Returns the new instance id.
@@ -41,7 +40,6 @@ def launch_worker(
         project_id=project_id,
         source_url=source_url,
         source_type=source_type,
-        virality_threshold=virality_threshold,
     )
 
     kwargs: dict = {
