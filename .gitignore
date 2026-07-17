@@ -1,0 +1,27 @@
+# Local environment files
+.env
+.env.*
+!.env.example
+!*.env.example
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+package-lock.json
+
+# Build outputs and caches
+dist/
+frontend/dist/
+.vite/
+frontend/.vite/
+*.tsbuildinfo
+
+# Deployment/tooling state
+.vercel/
+.rocketride/
+
+# OS/editor noise
+.DS_Store
+
+# One-off uploaded source logo; use frontend/public/clipfarm-logo.png instead.
+0f94cfd5-*.png
