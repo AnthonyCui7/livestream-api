@@ -7,6 +7,7 @@ shapes and the status vocabulary.
 """
 
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -49,6 +50,23 @@ class ProjectCreateRequest(BaseModel):
     source_type: ProjectSourceType
 
 
+class SocialPlatform(str, Enum):
+    """Platforms a clip can be posted to (mirrors the frontend + Zernio slugs)."""
+
+    tiktok = "tiktok"
+    youtube = "youtube"
+    instagram = "instagram"
+
+
+class SocialLinkRequest(BaseModel):
+    platform: SocialPlatform
+
+
+class ClipPostRequest(BaseModel):
+    platform: SocialPlatform
+    caption: str = ""
+
+
 class ClipEditsRequest(BaseModel):
     """Reviewer edits for one clip (trim + captions + title), saved from the
     in-app editor. Stored verbatim as the `clips.edits` jsonb — the field names
@@ -62,4 +80,8 @@ class ClipEditsRequest(BaseModel):
     trim_start: float | None = Field(default=None, alias="trimStart")
     trim_end: float | None = Field(default=None, alias="trimEnd")
     captions: list[dict] = Field(default_factory=list)
+    # Center-crop the clip to a vertical (9:16) frame. Only 'center' for now;
+    # None = full frame. Applied at display/preview time, burned in by a
+    # future server re-render like the rest of the edits.
+    crop: Literal["center"] | None = None
     updated_at: str | None = Field(default=None, alias="updatedAt")

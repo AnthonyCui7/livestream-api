@@ -8,6 +8,8 @@ interface Props {
   videoRef: RefObject<HTMLVideoElement | null>
   src: string
   bgColor: string
+  /** Center-crop the video to fill the 9:16 frame (else letterbox it). */
+  crop?: boolean
   captions: Caption[]
   currentTime: number
   playing: boolean
@@ -32,6 +34,7 @@ export function EditorPreview({
   videoRef,
   src,
   bgColor,
+  crop = false,
   captions,
   currentTime,
   playing,
@@ -75,7 +78,9 @@ export function EditorPreview({
           ref={videoRef}
           src={src}
           playsInline
-          className="absolute inset-0 w-full h-full object-contain bg-black"
+          className={`absolute inset-0 w-full h-full bg-black ${
+            crop ? 'object-cover' : 'object-contain'
+          }`}
           onLoadedMetadata={(e) => onLoadedMetadata(e.currentTarget.duration)}
           onClick={onTogglePlay}
         />

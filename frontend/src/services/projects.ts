@@ -10,7 +10,14 @@
 
 import type { Clip, ClipEdits, Project, SocialPlatform } from '../types'
 import { getSupabase } from '../lib/supabase'
-import { patchClipEdits, rowToClip, rowToProject, type ClipRow, type ProjectRow } from '../lib/api'
+import {
+  patchClipEdits,
+  postClipToSocial,
+  rowToClip,
+  rowToProject,
+  type ClipRow,
+  type ProjectRow,
+} from '../lib/api'
 import { getClipEdits, putClipEdits } from '../lib/clipEdits'
 
 export { createProject, cancelProject, deleteProject } from '../lib/api'
@@ -32,12 +39,38 @@ function toClip(row: ClipRow): Clip {
 }
 
 export async function listProjects(): Promise<Project[]> {
-  const { data, error } = await getSupabase()
-    .from('projects')
-    .select('*, clips(count)')
-    .order('created_at', { ascending: false })
+  const supabase = getSupabase()
+  const [{ data, error }, thumbs] = await Promise.all([
+    supabase.from('projects').select('*, clips(count)').order('created_at', { ascending: false }),
+    projectThumbnails(),
+  ])
   if (error) throw new Error(error.message)
-  return ((data ?? []) as ProjectRow[]).map(rowToProject)
+  return ((data ?? []) as ProjectRow[]).map((row) => ({
+    ...rowToProject(row),
+    thumbnailUrl: thumbs.get(row.id),
+  }))
+}
+
+/** First rendered clip thumbnail per project — the project card poster.
+ *  One query across all visible projects (RLS scopes it); best-effort. */
+async function projectThumbnails(): Promise<Map<string, string>> {
+  const map = new Map<string, string>()
+  try {
+    const { data } = await getSupabase()
+      .from('clips')
+      .select('project_id, metadata, created_at')
+      .eq('status', 'rendered')
+      .order('created_at', { ascending: true })
+    for (const row of (data ?? []) as Pick<ClipRow, 'project_id' | 'metadata'>[]) {
+      const url = row.metadata?.thumbnail_url
+      if (typeof url === 'string' && url !== '' && !map.has(row.project_id)) {
+        map.set(row.project_id, url)
+      }
+    }
+  } catch (err) {
+    console.error('[projectThumbnails] failed', err)
+  }
+  return map
 }
 
 export async function getProject(id: string): Promise<Project | null> {
@@ -107,9 +140,15 @@ export function subscribeClips(projectId: string, cb: (clips: Clip[]) => void): 
   }
 }
 
-/** DEMO: fake "post to social" — records the platform in memory and nudges
- *  active subscriptions so the posted badge updates right away. */
-export function postClip(clipId: string, platform: SocialPlatform): Promise<void> {
+/** Post a rendered clip to a linked social account (router → Zernio). On
+ *  success the platform is recorded in session memory so the posted badge
+ *  lights up immediately (posted state isn't persisted in the DB yet). */
+export async function postClip(
+  clipId: string,
+  platform: SocialPlatform,
+  caption = '',
+): Promise<void> {
+  await postClipToSocial(clipId, platform, caption)
   let set = postedByClip.get(clipId)
   if (!set) {
     set = new Set()
@@ -117,7 +156,6 @@ export function postClip(clipId: string, platform: SocialPlatform): Promise<void
   }
   set.add(platform)
   activeSubs.forEach((refresh) => refresh())
-  return new Promise((resolve) => setTimeout(resolve, 700)) // pretend the upload takes a beat
 }
 
 /**

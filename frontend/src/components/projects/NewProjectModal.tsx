@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Radio, Twitch, Video, X, Youtube } from 'lucide-react'
 import type { Project, StreamPlatform } from '../../types'
 import { createProject } from '../../services/projects'
+import { DEMO_YOUTUBE_PROJECT_ID } from '../../lib/config'
 import { showToast } from '../../lib/toast'
 
 interface Props {
@@ -135,6 +136,15 @@ export function NewProjectModal({ open, onClose, onCreated }: Props) {
     const invalid = validateUrl(trimmedUrl)
     if (invalid) {
       setError(invalid)
+      return
+    }
+    // YouTube blocks datacenter egress IPs, so a real YouTube job would fail
+    // in the worker. Route every YouTube submission to the seeded showcase
+    // project instead — no worker, instant results.
+    if (platform === 'youtube') {
+      showToast('YouTube demo — opening the showcase project')
+      onClose()
+      navigate(`/projects/${DEMO_YOUTUBE_PROJECT_ID}`)
       return
     }
     setError('')

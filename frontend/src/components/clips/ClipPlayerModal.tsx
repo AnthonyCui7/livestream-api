@@ -66,7 +66,9 @@ export function ClipPlayerModal({ clip, onClose }: { clip: Clip; onClose: () => 
             controls
             autoPlay
             playsInline
-            className="absolute inset-0 w-full h-full object-cover bg-black"
+            className={`absolute inset-0 w-full h-full bg-black ${
+              clip.edits?.crop === 'center' ? 'object-cover' : 'object-contain'
+            }`}
             onLoadedMetadata={(e) => {
               if (trimStart > 0) e.currentTarget.currentTime = trimStart
             }}

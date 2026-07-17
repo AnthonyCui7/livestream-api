@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Check, Loader2, Pause, Play, Redo2, Undo2 } from 'lucide-react'
+import { ArrowLeft, Check, Crop, Loader2, Pause, Play, Redo2, Undo2 } from 'lucide-react'
 import type { Caption, Clip, CaptionStyle, ClipEdits } from '../../../types'
 import { formatDuration } from '../../../lib/format'
 import { colorFor } from '../../../lib/placeholder'
@@ -20,6 +20,7 @@ interface Snapshot {
   trim: Trim
   captions: Caption[]
   title: string
+  crop: 'center' | null
 }
 
 /**
@@ -42,6 +43,7 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
     (clip.edits?.captions ?? []).map((c) => ({ ...c, style: { ...c.style } }))
   )
   const [title, setTitle] = useState(clip.title)
+  const [crop, setCrop] = useState<'center' | null>(clip.edits?.crop ?? null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -57,6 +59,8 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
   captionsRef.current = captions
   const titleRef = useRef(title)
   titleRef.current = title
+  const cropRef = useRef(crop)
+  cropRef.current = crop
 
   // ── undo / redo (ref stacks + a version counter to recompute can-undo/redo)
   const historyRef = useRef<Snapshot[]>([])
@@ -68,6 +72,7 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
       trim: trimRef.current,
       captions: captionsRef.current,
       title: titleRef.current,
+      crop: cropRef.current,
     }
     const top = historyRef.current[historyRef.current.length - 1]
     if (top && JSON.stringify(top) === JSON.stringify(snap)) return
@@ -80,6 +85,7 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
     setTrim(snap.trim)
     setCaptions(snap.captions)
     setTitle(snap.title)
+    setCrop(snap.crop)
     setDirty(true)
   }, [])
 
@@ -90,6 +96,7 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
       trim: trimRef.current,
       captions: captionsRef.current,
       title: titleRef.current,
+      crop: cropRef.current,
     })
     restore(prev)
     setHistVersion((v) => v + 1)
@@ -102,6 +109,7 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
       trim: trimRef.current,
       captions: captionsRef.current,
       title: titleRef.current,
+      crop: cropRef.current,
     })
     restore(next)
     setHistVersion((v) => v + 1)
@@ -128,6 +136,11 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
     setTitle(t)
     setDirty(true)
   }, [])
+  const toggleCrop = useCallback(() => {
+    pushSnapshot()
+    setCrop((c) => (c === 'center' ? null : 'center'))
+    setDirty(true)
+  }, [pushSnapshot])
 
   // ── playback ────────────────────────────────────────────────────────────
   const seek = useCallback((t: number) => {
@@ -248,6 +261,7 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
       trimStart: t.start > 0.05 ? round(t.start) : undefined,
       trimEnd: duration > 0 && t.end < duration - 0.05 ? round(t.end) : undefined,
       captions: captionsRef.current.map((c) => ({ ...c, style: { ...c.style } })),
+      crop: cropRef.current ?? undefined,
       updatedAt: new Date().toISOString(),
     }
     try {
@@ -310,6 +324,20 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
           placeholder="Clip title"
         />
         <div className="ml-auto flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={toggleCrop}
+            aria-pressed={crop === 'center'}
+            title={crop === 'center' ? 'Center crop on — show full frame' : 'Center crop to 9:16'}
+            className={`inline-flex items-center gap-1.5 h-8 px-2.5 text-[12px] font-medium rounded-[7px] transition-colors ${
+              crop === 'center'
+                ? 'bg-violet-500/15 text-violet-200 ring-1 ring-violet-400/30'
+                : 'text-neutral-400 hover:text-white hover:bg-white/[0.06]'
+            }`}
+          >
+            <Crop size={14} /> Center crop
+          </button>
+          <div className="w-px h-5 bg-white/[0.08]" />
           <IconBtn label="Undo" onClick={undo} disabled={!canUndo}>
             <Undo2 size={16} />
           </IconBtn>
@@ -345,6 +373,7 @@ export function ClipEditor({ clip, onClose }: { clip: Clip; onClose: () => void 
               videoRef={videoRef}
               src={videoUrl}
               bgColor={bgColor}
+              crop={crop === 'center'}
               captions={captions}
               currentTime={currentTime}
               playing={playing}

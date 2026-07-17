@@ -15,6 +15,13 @@ HOST="44.218.15.199"
 SSH_KEY="$HOME/.ssh/livestream-debug.pem"
 SECRET_ARN="arn:aws:secretsmanager:us-east-1:519659320853:secret:livestream/worker-secrets-Z8TfVV"
 FRONTEND_ORIGIN="https://clipfarmlive.tech,https://www.clipfarmlive.tech,http://localhost:5173,http://127.0.0.1:5173"
+# Any Vercel deployment/preview URL of the frontend.
+FRONTEND_ORIGIN_REGEX='https://.*\.vercel\.app'
+# Zernio social-posting key comes from the local router/.env (server-side
+# only). Absolute path — this runs before the cd below.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ZERNIO_API_KEY="$(grep '^ZERNIO_API_KEY=' "$SCRIPT_DIR/../.env" | cut -d= -f2- | tr -d '"' || true)"
+ZERNIO_API_BASE_URL="$(grep '^ZERNIO_API_BASE_URL=' "$SCRIPT_DIR/../.env" | cut -d= -f2- | tr -d '"' || true)"
 
 SSH=(/usr/bin/ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no -o ConnectTimeout=10 "ec2-user@$HOST")
 cd "$(dirname "$0")"
@@ -51,6 +58,9 @@ SUPABASE_ANON_KEY=\$(jq -r .SUPABASE_ANON_KEY <<<"\$BUNDLE")
 SUPABASE_SERVICE_ROLE_KEY=\$(jq -r .SUPABASE_SERVICE_ROLE_KEY <<<"\$BUNDLE")
 SUPABASE_STORAGE_BUCKET=clips
 FRONTEND_ORIGIN=$FRONTEND_ORIGIN
+FRONTEND_ORIGIN_REGEX=$FRONTEND_ORIGIN_REGEX
+ZERNIO_API_KEY=$ZERNIO_API_KEY
+ZERNIO_API_BASE_URL=${ZERNIO_API_BASE_URL:-https://zernio.com/api/v1}
 AWS_REGION=$REGION
 WORKER_AMI_ID=ami-02e447f4c654c7179
 WORKER_INSTANCE_TYPE=c7g.xlarge

@@ -165,6 +165,18 @@ export interface ClipEdits {
   /** New out-point within the clip video. Undefined = end of the clip. */
   trimEnd?: number
   captions: Caption[]
+  /** Center-crop the clip to a vertical 9:16 frame. Undefined/null = full
+   *  frame. Applied via CSS in previews; burned in by a future re-render. */
+  crop?: 'center' | null
   /** ISO timestamp of the last save. */
   updatedAt: string
+}
+
+// ── social accounts (Zernio-backed, via the router) ─────────────────────────
+
+/** One connected social account, as returned by GET /api/social/accounts. */
+export interface SocialAccount {
+  id: string
+  platform: SocialPlatform | string
+  name?: string | null
 }

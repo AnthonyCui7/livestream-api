@@ -25,6 +25,9 @@ app = FastAPI(title="Livestream Clipper Router", version="0.1.0", lifespan=lifes
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.frontend_origin_list,
+    # Vercel deployment/preview URLs are dynamic — matched by regex instead of
+    # the static list. None (not "") when unset, or Starlette matches nothing.
+    allow_origin_regex=settings.frontend_origin_regex or None,
     allow_credentials=True,
     allow_methods=["*"],
     # Explicit list because the CORS wildcard does not cover Authorization.

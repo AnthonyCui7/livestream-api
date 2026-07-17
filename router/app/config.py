@@ -21,6 +21,14 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     # Comma-separated in the env; use frontend_origin_list to read.
     frontend_origin: str = "http://localhost:5173"
+    # Optional regex for dynamic origins the static list can't cover (Vercel
+    # preview/deployment URLs). Empty = no regex matching.
+    frontend_origin_regex: str = ""
+
+    # ── Zernio (social posting API) ──────────────────────────────────
+    # Server-side only. Empty key = social endpoints answer 503.
+    zernio_api_key: str = ""
+    zernio_api_base_url: str = "https://zernio.com/api/v1"
 
     # ── Supabase (clip storage + metadata) ───────────────────────────
     supabase_url: str = ""

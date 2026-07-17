@@ -15,8 +15,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.auth import AuthUser, get_current_user
-from app.schemas import ClipEditsRequest
+from app.schemas import ClipEditsRequest, ClipPostRequest
 from app.supabase_client import get_supabase
+from app import zernio
 
 logger = logging.getLogger(__name__)
 
@@ -65,3 +66,55 @@ def save_clip_edits(
         .data
     )
     return updated[0] if updated else _get_owned_clip(supabase, clip_id, user)
+
+
+@router.post("/{clip_id}/post")
+def post_clip(
+    clip_id: UUID,
+    body: ClipPostRequest,
+    user: AuthUser = Depends(get_current_user),
+) -> dict:
+    """Publish a rendered clip to one linked social account via Zernio.
+
+    409 when the platform isn't linked yet — the frontend then offers the
+    connect flow (POST /api/social/accounts/link)."""
+    supabase = get_supabase()
+    clip = _get_owned_clip(supabase, clip_id, user)
+
+    video_url = clip.get("video_url")
+    if clip.get("status") != "rendered" or not video_url:
+        raise HTTPException(
+            status_code=409, detail="Only rendered clips can be posted."
+        )
+
+    try:
+        profile_id = zernio.get_or_create_profile(
+            supabase, user_id=user.id, email=user.email
+        )
+        accounts = zernio.list_accounts(profile_id)
+        account = next(
+            (a for a in accounts if a.get("platform") == body.platform.value), None
+        )
+        if account is None:
+            raise HTTPException(
+                status_code=409,
+                detail=f"No linked {body.platform.value} account. Connect one first.",
+            )
+        result = zernio.create_post(
+            caption=body.caption or clip.get("title") or "",
+            platform=body.platform.value,
+            account_id=account["id"],
+            media_url=video_url,
+        )
+    except zernio.ZernioNotConfigured:
+        raise HTTPException(
+            status_code=503, detail="Social posting is not configured on this server."
+        )
+    except zernio.ZernioError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+    logger.info(
+        "clip %s posted to %s by %s (zernio post %s)",
+        clip_id, body.platform.value, user.id, result.get("post_id"),
+    )
+    return result

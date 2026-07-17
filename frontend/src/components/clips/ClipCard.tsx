@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Flame, Play, Scissors } from 'lucide-react'
-import type { Clip, SocialPlatform } from '../../types'
+import { Crop, Flame, Play, Scissors } from 'lucide-react'
+import type { Clip, ClipEdits, SocialPlatform } from '../../types'
 import { formatDuration, viralityScore, viralityTone } from '../../lib/format'
 import { colorFor } from '../../lib/placeholder'
-import { postClip } from '../../services/projects'
+import { showToast } from '../../lib/toast'
+import { postClip, saveClipEdits } from '../../services/projects'
 import { PLATFORMS } from './platformIcons'
 import { ClipPlayerModal } from './ClipPlayerModal'
 import { ClipThumbnail } from './ClipThumbnail'
@@ -34,6 +35,36 @@ export function ClipCard({ clip }: { clip: Clip }) {
   const posted = new Set(clip.postedPlatforms ?? [])
   const playable = clip.status === 'rendered' && !!clip.videoUrl
 
+  // Center-crop toggle — optimistic override so the tile flips instantly
+  // while the save round-trips; the refreshed clip prop takes over after.
+  const [cropOverride, setCropOverride] = useState<'center' | null | undefined>(undefined)
+  const [cropSaving, setCropSaving] = useState(false)
+  const crop = cropOverride !== undefined ? cropOverride : (clip.edits?.crop ?? null)
+
+  const toggleCrop = async () => {
+    if (cropSaving) return
+    const next = crop === 'center' ? null : ('center' as const)
+    setCropOverride(next)
+    setCropSaving(true)
+    try {
+      const base = clip.edits
+      const edits: ClipEdits = {
+        title: base?.title,
+        trimStart: base?.trimStart,
+        trimEnd: base?.trimEnd,
+        captions: base?.captions ?? [],
+        crop: next ?? undefined,
+        updatedAt: new Date().toISOString(),
+      }
+      await saveClipEdits(clip.id, edits)
+    } catch (err) {
+      setCropOverride(undefined)
+      showToast(err instanceof Error ? err.message : 'Failed to save the crop')
+    } finally {
+      setCropSaving(false)
+    }
+  }
+
   return (
     <div className="group relative flex flex-col">
       <div
@@ -41,7 +72,7 @@ export function ClipCard({ clip }: { clip: Clip }) {
         // Always painted — the under-layer if a thumbnail 404s or loads slowly.
         style={{ backgroundColor: colorFor(clip.id) }}
       >
-        <ClipThumbnail clip={clip} />
+        <ClipThumbnail clip={clip} crop={crop} />
 
         {/* Virality score — the headline metric. */}
         <div
@@ -127,6 +158,25 @@ export function ClipCard({ clip }: { clip: Clip }) {
             )
           })}
 
+          {/* Center-crop to vertical — previews on this tile and persists. */}
+          {playable && (
+            <button
+              type="button"
+              onClick={() => void toggleCrop()}
+              disabled={cropSaving}
+              title={crop === 'center' ? 'Center crop on — show full frame' : 'Center crop to 9:16'}
+              aria-label="Toggle center crop"
+              aria-pressed={crop === 'center'}
+              className={`ml-auto grid place-items-center w-7 h-7 rounded-[6px] ring-1 transition-colors disabled:opacity-50 ${
+                crop === 'center'
+                  ? 'bg-violet-500/15 ring-violet-400/30 text-violet-200 hover:bg-violet-500/25'
+                  : 'bg-white/[0.04] ring-white/[0.06] text-neutral-400 hover:text-white hover:bg-white/[0.08]'
+              }`}
+            >
+              <Crop size={14} />
+            </button>
+          )}
+
           {/* Edit — trim length + add captions. Only for rendered clips. */}
           {playable && (
             <button
@@ -156,7 +206,7 @@ export function ClipCard({ clip }: { clip: Clip }) {
           clip={clip}
           platform={postingTo}
           onClose={() => setPostingTo(null)}
-          onPost={(platform) => postClip(clip.id, platform)}
+          onPost={(platform, caption) => postClip(clip.id, platform, caption)}
         />
       )}
     </div>

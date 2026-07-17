@@ -7,7 +7,15 @@
 // in `Authorization: Bearer …`; the router validates it and scopes the write
 // to that user.
 
-import type { Clip, ClipEdits, ClipMetadata, Project, SocialPlatform, StreamPlatform } from '../types'
+import type {
+  Clip,
+  ClipEdits,
+  ClipMetadata,
+  Project,
+  SocialAccount,
+  SocialPlatform,
+  StreamPlatform,
+} from '../types'
 import { getSupabase } from './supabase'
 
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
@@ -202,4 +210,38 @@ export async function patchClipEdits(clipId: string, edits: ClipEdits): Promise<
     method: 'PATCH',
     body: JSON.stringify(edits),
   })
+}
+
+// ── social (Zernio via the router — the API key never reaches the browser) ──
+
+/** GET /api/social/accounts — the caller's connected social accounts. */
+export async function listSocialAccounts(): Promise<SocialAccount[]> {
+  const res = await apiFetch('/api/social/accounts')
+  const { accounts } = (await res.json()) as { accounts: SocialAccount[] }
+  return accounts
+}
+
+/** POST /api/social/accounts/link — hosted OAuth URL for connecting one
+ *  platform; open it in a new tab, then re-list accounts. */
+export async function linkSocialAccount(platform: SocialPlatform): Promise<string> {
+  const res = await apiFetch('/api/social/accounts/link', {
+    method: 'POST',
+    body: JSON.stringify({ platform }),
+  })
+  const { auth_url } = (await res.json()) as { auth_url: string }
+  return auth_url
+}
+
+/** POST /api/clips/:id/post — publish a rendered clip to a linked account.
+ *  409 = platform not linked (or clip not rendered). */
+export async function postClipToSocial(
+  clipId: string,
+  platform: SocialPlatform,
+  caption: string,
+): Promise<{ post_id: string; status: string }> {
+  const res = await apiFetch(`/api/clips/${clipId}/post`, {
+    method: 'POST',
+    body: JSON.stringify({ platform, caption }),
+  })
+  return (await res.json()) as { post_id: string; status: string }
 }

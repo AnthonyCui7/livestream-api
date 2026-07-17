@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
-import { Check, Flame, X } from 'lucide-react'
-import type { Clip, SocialPlatform } from '../../types'
+import { useCallback, useEffect, useState } from 'react'
+import { Check, ExternalLink, Flame, Link2, Loader2, RefreshCw, X } from 'lucide-react'
+import type { Clip, SocialAccount, SocialPlatform } from '../../types'
+import { linkSocialAccount, listSocialAccounts } from '../../lib/api'
 import { viralityScore, viralityTone } from '../../lib/format'
 import { colorFor } from '../../lib/placeholder'
 import { platformMeta } from './platformIcons'
@@ -15,41 +16,90 @@ interface Props {
 }
 
 /**
- * Post-a-clip-to-social modal, in the spirit of narrative's SocialMediaModal:
- * a per-platform sheet with the clip preview and a caption. In demo the post
- * is simulated (see services/postClip → lib/demo). Wire OAuth + real upload
- * when the router exposes /api/clips/:id/post.
+ * Post-a-clip-to-social modal. Real posting via the router → Zernio: the modal
+ * checks the caller's linked accounts (GET /api/social/accounts) and gates the
+ * Post button behind connecting one — the Connect button opens Zernio's hosted
+ * OAuth in a new tab, then accounts are re-checked on window focus or the
+ * refresh button.
  */
 export function PostModal({ open, clip, platform, onClose, onPost }: Props) {
   const meta = platformMeta(platform)
   const [caption, setCaption] = useState('')
   const [phase, setPhase] = useState<'edit' | 'posting' | 'done'>('edit')
+  const [postError, setPostError] = useState('')
+
+  // null = loading; 'unavailable' = social not configured / unreachable.
+  const [accounts, setAccounts] = useState<SocialAccount[] | 'unavailable' | null>(null)
+  const [connecting, setConnecting] = useState(false)
+  const [linkStarted, setLinkStarted] = useState(false)
+
+  const refreshAccounts = useCallback(async () => {
+    try {
+      setAccounts(await listSocialAccounts())
+    } catch {
+      setAccounts('unavailable')
+    }
+  }, [])
 
   useEffect(() => {
     if (!open) return
     setCaption(clip.title)
     setPhase('edit')
+    setPostError('')
+    setLinkStarted(false)
+    setAccounts(null)
+    void refreshAccounts()
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, clip.title, onClose])
+  }, [open, clip.title, onClose, refreshAccounts])
+
+  // After the user goes off to Zernio's OAuth tab, re-check when they return.
+  useEffect(() => {
+    if (!open || !linkStarted) return
+    const onFocus = () => void refreshAccounts()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [open, linkStarted, refreshAccounts])
 
   if (!open) return null
 
   const score = viralityScore(clip.score)
   const tone = viralityTone(score)
   const alreadyPosted = clip.postedPlatforms?.includes(platform)
+  const loadingAccounts = accounts === null
+  const unavailable = accounts === 'unavailable'
+  const linkedAccount =
+    Array.isArray(accounts) ? accounts.find((a) => a.platform === platform) : undefined
+  const linked = !!linkedAccount
+
+  const connect = async () => {
+    if (connecting) return
+    setConnecting(true)
+    setPostError('')
+    try {
+      const url = await linkSocialAccount(platform)
+      window.open(url, '_blank', 'noopener')
+      setLinkStarted(true)
+    } catch (err) {
+      setPostError(err instanceof Error ? err.message : 'Could not start the connect flow')
+    } finally {
+      setConnecting(false)
+    }
+  }
 
   const submit = async () => {
-    if (phase !== 'edit') return
+    if (phase !== 'edit' || !linked) return
     setPhase('posting')
+    setPostError('')
     try {
       await onPost(platform, caption.trim())
       setPhase('done')
       setTimeout(onClose, 900)
-    } catch {
+    } catch (err) {
+      setPostError(err instanceof Error ? err.message : 'Posting failed')
       setPhase('edit')
     }
   }
@@ -89,7 +139,7 @@ export function PostModal({ open, clip, platform, onClose, onPost }: Props) {
             </div>
           </div>
 
-          {/* Caption */}
+          {/* Caption + account state */}
           <div className="flex-1 min-w-0">
             <label className="block text-neutral-400 text-[12px] mb-1.5">Caption</label>
             <textarea
@@ -103,13 +153,59 @@ export function PostModal({ open, clip, platform, onClose, onPost }: Props) {
             {alreadyPosted && phase === 'edit' && (
               <p className="mt-1.5 text-[11px] text-neutral-500">Already posted to {meta.label} — posting again.</p>
             )}
+            {postError && <p className="mt-1.5 text-[11px] text-red-300/90">{postError}</p>}
+
+            {/* Not linked yet — the connect flow, inline. */}
+            {!loadingAccounts && !unavailable && !linked && (
+              <div className="mt-2.5 px-3 py-2.5 bg-white/[0.03] ring-1 ring-white/[0.06] rounded-[8px]">
+                <p className="text-[11.5px] text-neutral-400 mb-2">
+                  No {meta.label} account linked yet. Connect one to post.
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void connect()}
+                    disabled={connecting}
+                    className="inline-flex items-center gap-1.5 h-7 px-2.5 text-[11.5px] font-semibold text-white bg-violet-600 hover:bg-violet-500 rounded-[6px] transition-colors disabled:opacity-50"
+                  >
+                    {connecting ? <Loader2 size={12} className="animate-spin" /> : <ExternalLink size={12} />}
+                    Connect {meta.label}
+                  </button>
+                  {linkStarted && (
+                    <button
+                      type="button"
+                      onClick={() => void refreshAccounts()}
+                      className="inline-flex items-center gap-1 h-7 px-2 text-[11.5px] text-neutral-300 hover:text-white rounded-[6px] hover:bg-white/[0.06] transition-colors"
+                    >
+                      <RefreshCw size={11} /> Check again
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="flex items-center justify-between px-5 py-4 border-t border-white/[0.06]">
-          {/* HARDCODED: demo notice — real posting needs OAuth + the router API */}
-          <span className="text-[11px] text-neutral-600">Demo — no real upload</span>
-          <div className="flex gap-2">
+          <span className="inline-flex items-center gap-1.5 text-[11px] text-neutral-500 min-w-0">
+            {loadingAccounts ? (
+              <>
+                <Loader2 size={11} className="animate-spin" /> Checking linked accounts…
+              </>
+            ) : unavailable ? (
+              'Social posting unavailable'
+            ) : linked ? (
+              <>
+                <Link2 size={11} className="text-emerald-400" />
+                <span className="truncate">
+                  {linkedAccount?.name ? `Linked: ${linkedAccount.name}` : `${meta.label} linked`}
+                </span>
+              </>
+            ) : (
+              `${meta.label} not linked`
+            )}
+          </span>
+          <div className="flex gap-2 shrink-0">
             <button
               type="button"
               onClick={onClose}
@@ -120,7 +216,7 @@ export function PostModal({ open, clip, platform, onClose, onPost }: Props) {
             <button
               type="button"
               onClick={submit}
-              disabled={phase !== 'edit' || caption.trim().length === 0}
+              disabled={phase !== 'edit' || !linked || caption.trim().length === 0}
               className="h-9 px-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-white bg-violet-600 hover:bg-violet-500 rounded-[7px] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {phase === 'done' ? (
